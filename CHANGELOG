@@ -1,5 +1,6 @@
 == FeedTools 0.2.23
  * feed cache is set to nil by default now
+ * both summary and content elements are generated now
 == FeedTools 0.2.22
  * fixed another atom generation error
 == FeedTools 0.2.21
