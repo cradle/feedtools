@@ -1,0 +1,411 @@
+require 'rubygems'
+require 'rake'
+require 'rake/testtask'
+require 'rake/rdoctask'
+require 'rake/packagetask'
+require 'rake/gempackagetask'
+require 'rake/contrib/rubyforgepublisher'
+
+PKG_NAME      = 'feedtools'
+PKG_VERSION   = '0.2.23'
+PKG_FILE_NAME = "#{PKG_NAME}-#{PKG_VERSION}"
+
+RELEASE_NAME  = "REL #{PKG_VERSION}"
+
+RUBY_FORGE_PROJECT = "feedtools"
+RUBY_FORGE_USER    = "vacindak"
+
+PKG_FILES = FileList[
+    "lib/**/*", "test/**/*", "examples/**/*", "doc/**/*", "db/**/*",
+    "[A-Z]*", "install.rb", "rakefile"
+].exclude(/\bCVS\b|~$/).exclude(/database\.yml/).exclude(/\._.*/)
+
+desc "Default Task"
+task :default => [ :test_all ]
+
+# Run the unit tests
+
+Rake::TestTask.new("test_all") { |t|
+  t.libs << "test"
+  t.test_files = FileList['test/unit/*_test.rb']
+  t.verbose = true
+}
+Rake::TestTask.new("amp_test") { |t|
+  t.libs << "test"
+  t.test_files = FileList['test/unit/amp_test.rb']
+  t.verbose = true
+}
+Rake::TestTask.new("atom_test") { |t|
+  t.libs << "test"
+  t.test_files = FileList['test/unit/atom_test.rb']
+  t.verbose = true
+}
+Rake::TestTask.new("cache_test") { |t|
+  t.libs << "test"
+  t.test_files = FileList['test/unit/cache_test.rb']
+  t.verbose = true
+}
+Rake::TestTask.new("cdf_test") { |t|
+  t.libs << "test"
+  t.test_files = FileList['test/unit/cdf_test.rb']
+  t.verbose = true
+}
+Rake::TestTask.new("encoding_test") { |t|
+  t.libs << "test"
+  t.test_files = FileList['test/unit/encoding_test.rb']
+  t.verbose = true
+}
+Rake::TestTask.new("generation_test") { |t|
+  t.libs << "test"
+  t.test_files = FileList['test/unit/generation_test.rb']
+  t.verbose = true
+}
+Rake::TestTask.new("helper_test") { |t|
+  t.libs << "test"
+  t.test_files = FileList['test/unit/helper_test.rb']
+  t.verbose = true
+}
+Rake::TestTask.new("interface_test") { |t|
+  t.libs << "test"
+  t.test_files = FileList['test/unit/interface_test.rb']
+  t.verbose = true
+}
+Rake::TestTask.new("nonstandard_test") { |t|
+  t.libs << "test"
+  t.test_files = FileList['test/unit/nonstandard_test.rb']
+  t.verbose = true
+}
+Rake::TestTask.new("rdf_test") { |t|
+  t.libs << "test"
+  t.test_files = FileList['test/unit/rdf_test.rb']
+  t.verbose = true
+}
+Rake::TestTask.new("rss_test") { |t|
+  t.libs << "test"
+  t.test_files = FileList['test/unit/rss_test.rb']
+  t.verbose = true
+}
+
+# Generate the RDoc documentation
+
+Rake::RDocTask.new { |rdoc|
+  rdoc.rdoc_dir = 'doc'
+  rdoc.title    = "Feed Tools -- caching system for xml news feeds"
+  rdoc.options << '--line-numbers' << '--inline-source' <<
+    '--accessor' << 'cattr_accessor=object'
+  rdoc.template = "#{ENV['template']}.rb" if ENV['template']
+  rdoc.rdoc_files.include('README', 'CHANGELOG')
+  rdoc.rdoc_files.include('lib/**/*.rb')
+  rdoc.rdoc_files.include('db/**/*.sql')
+}
+
+# Create compressed packages
+
+dist_dirs = [ "lib", "test", "db" ]
+
+spec = Gem::Specification.new do |s|
+  s.name = PKG_NAME
+  s.version = PKG_VERSION
+  s.summary = "Parsing, generation, and caching system for xml news feeds."
+  s.description = "Implements a simple system for handling xml news feeds with caching."
+
+  s.files = [ "rakefile", "install.rb", "README", "CHANGELOG" ]
+  dist_dirs.each do |dir|
+    s.files = s.files + Dir.glob( "#{dir}/**/*" ).delete_if do |item|
+      item.include?( "\.svn" ) || item.include?( "database\.yml" )
+    end
+  end
+  
+  s.add_dependency('activerecord', '>= 1.10.1')
+  s.add_dependency('uuidtools', '>= 0.1.2')
+  s.add_dependency('builder', '>= 1.2.4')
+
+  s.require_path = 'lib'
+  s.autorequire = 'feed_tools'
+
+  s.has_rdoc = true
+  s.extra_rdoc_files = %w( README )
+  s.rdoc_options.concat ['--main',  'README']
+  
+  s.author = "Bob Aman"
+  s.email = "bob@sporkmonger.com"
+  s.homepage = "http://sporkmonger.com/projects/feedtools"
+  s.rubyforge_project = "feedtools"
+end
+  
+Rake::GemPackageTask.new(spec) do |p|
+  p.gem_spec = spec
+  p.need_tar = true
+  p.need_zip = true
+end
+
+task :benchmark do
+  $:.unshift(File.dirname(__FILE__) + '/lib')
+  require 'benchmark'
+  require 'feed_tools'
+  puts "Benchmarking FeedTools #{FEED_TOOLS_VERSION}..."
+  results = Benchmark.measure do
+    10.times do
+      feed = FeedTools::Feed.new
+      once = Benchmark.measure do
+        feed.feed_data = <<-FEED
+          <?xml version="1.0" encoding="UTF-8"?>
+          <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/" xmlns:slash="http://purl.org/rss/1.0/modules/slash/" xmlns:taxo="http://purl.org/rss/1.0/modules/taxonomy/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:syn="http://purl.org/rss/1.0/modules/syndication/" xmlns:admin="http://webns.net/mvcb/" xmlns:feedburner="http://rssnamespace.org/feedburner/ext/1.0">
+            <channel rdf:about="http://slashdot.org/">
+              <title>Slashdot</title>
+              <link>http://slashdot.org/</link>
+              <description>News for nerds, stuff that matters</description>
+              <dc:language>en-us</dc:language>
+              <dc:rights>Copyright 1997-2005, OSTG - Open Source Technology Group, Inc.  All Rights Reserved.</dc:rights>
+
+              <dc:date>2006-01-19T04:30:55+00:00</dc:date>
+              <dc:publisher>OSTG</dc:publisher>
+              <dc:creator>pater@slashdot.org</dc:creator>
+              <dc:subject>Technology</dc:subject>
+              <syn:updatePeriod>hourly</syn:updatePeriod>
+              <syn:updateFrequency>1</syn:updateFrequency>
+
+              <syn:updateBase>1970-01-01T00:00+00:00</syn:updateBase>
+              <items>
+                <rdf:Seq>
+                  <rdf:li rdf:resource="http://hardware.slashdot.org/article.pl?sid=06/01/19/0035238&amp;from=rss" />
+                  <rdf:li rdf:resource="http://developers.slashdot.org/article.pl?sid=06/01/19/0026203&amp;from=rss" />
+                  <rdf:li rdf:resource="http://science.slashdot.org/article.pl?sid=06/01/19/0019225&amp;from=rss" />
+                  <rdf:li rdf:resource="http://ask.slashdot.org/article.pl?sid=06/01/18/2133251&amp;from=rss" />
+                  <rdf:li rdf:resource="http://yro.slashdot.org/article.pl?sid=06/01/18/2037259&amp;from=rss" />
+
+                  <rdf:li rdf:resource="http://linux.slashdot.org/article.pl?sid=06/01/18/1945206&amp;from=rss" />
+                  <rdf:li rdf:resource="http://slashdot.org/article.pl?sid=06/01/18/1931219&amp;from=rss" />
+                  <rdf:li rdf:resource="http://science.slashdot.org/article.pl?sid=06/01/18/1832232&amp;from=rss" />
+                  <rdf:li rdf:resource="http://politics.slashdot.org/article.pl?sid=06/01/18/1722256&amp;from=rss" />
+                  <rdf:li rdf:resource="http://slashdot.org/article.pl?sid=06/01/18/1654232&amp;from=rss" />
+                </rdf:Seq>
+              </items>
+              <image rdf:resource="http://images.slashdot.org/topics/topicslashdot.gif" />
+              <textinput rdf:resource="http://slashdot.org/search.pl" />
+
+            </channel>
+            <image rdf:about="http://images.slashdot.org/topics/topicslashdot.gif">
+              <title>Slashdot</title>
+              <url>http://images.slashdot.org/topics/topicslashdot.gif</url>
+              <link>http://slashdot.org/</link>
+            </image>
+            <item rdf:about="http://hardware.slashdot.org/article.pl?sid=06/01/19/0035238&amp;from=rss">
+
+              <title>South Korea To Develop Army and Police Robots</title>
+              <link>http://rss.slashdot.org/Slashdot/slashdot?m=3171</link>
+              <description>JonathanGCohen writes "South Korea is planning on developing an advanced line of robots for military and police use by the 2010 decade. A $34 million USD infusion of cash will spur development and result in robotic applications like security watchmen and eight-legged autonomous combat vehicles. "&lt;img src="http://rss.slashdot.org/Slashdot/slashdot?g=3171"/&gt;</description>
+              <dc:creator>samzenpus</dc:creator>
+              <dc:date>2006-01-19T04:14:00+00:00</dc:date>
+              <dc:subject>robotics</dc:subject>
+
+              <slash:department>you-have-twenty-seconds-to-comply</slash:department>
+              <slash:section>hardware</slash:section>
+              <slash:comments>29</slash:comments>
+              <slash:hit_parade>29,29,27,12,1,0,0</slash:hit_parade>
+              <feedburner:origLink>http://hardware.slashdot.org/article.pl?sid=06/01/19/0035238&amp;from=rss</feedburner:origLink>
+            </item>
+
+            <item rdf:about="http://developers.slashdot.org/article.pl?sid=06/01/19/0026203&amp;from=rss">
+              <title>Computer Science Students Outsource Homework</title>
+              <link>http://rss.slashdot.org/Slashdot/slashdot?m=3170</link>
+              <description>Carl Bialik from the WSJ writes "'If U.S. companies can go online to outsource their programming, why can't U.S. computer students outsource their homework--which, after all, often involves writing sample programs?' Wall Street Journal colummnist Lee Gomes asks. 'Scruples aside, no reason at all. Search for "homework" in the data base of Rent A Coder projects, and you get 1,000 hits. (An impressive number, but still a tiny fraction of all computer students, the vast majority of whom are no doubt an honest and hardworking lot.)' Some of the Rent a Coder users appear to be outsourcing their way through school, at low costs--probably less than $100 per assignment. The posting are, of course, anonymous, but Gomes traces one to a student at the New Jersey Institute of Technology, where an instructor tells him that Rent a Coder contributed to a problem of plagiarism last semester."&lt;img src="http://rss.slashdot.org/Slashdot/slashdot?g=3170"/&gt;</description>
+              <dc:creator>samzenpus</dc:creator>
+              <dc:date>2006-01-19T03:08:00+00:00</dc:date>
+
+              <dc:subject>ed</dc:subject>
+              <slash:department>what-happened-to-putting-it-into-your-graphing-calculator</slash:department>
+              <slash:section>developers</slash:section>
+              <slash:comments>142</slash:comments>
+              <slash:hit_parade>142,139,121,75,18,8,4</slash:hit_parade>
+              <feedburner:origLink>http://developers.slashdot.org/article.pl?sid=06/01/19/0026203&amp;from=rss</feedburner:origLink>
+
+            </item>
+            <item rdf:about="http://science.slashdot.org/article.pl?sid=06/01/19/0019225&amp;from=rss">
+              <title>MythBusters - The Lost Experiments</title>
+              <link>http://rss.slashdot.org/Slashdot/slashdot?m=3169</link>
+              <description>theLorax writes "From Discovery: "If you like the MythBusters here are some videos they just posted of some of the out takes and things that didn't appear on the show. Cola bits (cleaning things with cola), water torture, otter ping pong, live power lines, cement build up and plywood flight." Here is the interview we did with these guys in December.
+          &lt;p&gt;&lt;a href="http://rss.slashdot.org/~c/Slashdot/slashdot?a=SXBhr7"&gt;&lt;img src="http://rss.slashdot.org/~c/Slashdot/slashdot?i=SXBhr7" border="0"&gt;&lt;/img&gt;&lt;/a&gt;&lt;/p&gt;&lt;img src="http://rss.slashdot.org/Slashdot/slashdot?g=3169"/&gt;</description>
+
+              <dc:creator>samzenpus</dc:creator>
+              <dc:date>2006-01-19T01:58:00+00:00</dc:date>
+              <dc:subject>tv</dc:subject>
+              <slash:department>they-should-battle-mr.wizard</slash:department>
+              <slash:section>science</slash:section>
+              <slash:comments>134</slash:comments>
+
+              <slash:hit_parade>134,130,95,61,23,12,6</slash:hit_parade>
+              <feedburner:origLink>http://science.slashdot.org/article.pl?sid=06/01/19/0019225&amp;from=rss</feedburner:origLink>
+            </item>
+            <item rdf:about="http://ask.slashdot.org/article.pl?sid=06/01/18/2133251&amp;from=rss">
+              <title>Has Corporate Info Security Gotten Out of Hand?</title>
+              <link>http://rss.slashdot.org/Slashdot/slashdot?m=3168</link>
+
+              <description>KoshClassic asks: "What is the right balance between security and productivity, in the corporate IT environment? Looking back at my company, 10 years ago, our machines were connected directly to the Internet, no proxy, no firewall, no antivirus software. Today, my company's proxy server blocks access to: 'bad' web sites (such as Google Groups; our 'antivirus' software prevents our machines (even machines that host production applications) from carrying out legitimate functions, such as the sending of email via SMTP; and individual employees are forced to apply security patches with little or no notice, under threat of their machines loosing network access, if they do not comply by the deadline. On one hand, you can never be too secure, however on the other hand, have we become so secure that we're stifling our own ability to get things done? What is the situation like at other companies?"&lt;img src="http://rss.slashdot.org/Slashdot/slashdot?g=3168"/&gt;</description>
+              <dc:creator>Cliff</dc:creator>
+              <dc:date>2006-01-19T00:52:00+00:00</dc:date>
+              <dc:subject>security</dc:subject>
+              <slash:department>proper-security-is-like-walking-on-monowire</slash:department>
+              <slash:section>askslashdot</slash:section>
+
+              <slash:comments>259</slash:comments>
+              <slash:hit_parade>259,253,200,130,29,16,11</slash:hit_parade>
+              <feedburner:origLink>http://ask.slashdot.org/article.pl?sid=06/01/18/2133251&amp;from=rss</feedburner:origLink>
+            </item>
+            <item rdf:about="http://yro.slashdot.org/article.pl?sid=06/01/18/2037259&amp;from=rss">
+              <title>Slashback: GPLv3, Firefly, iTunes</title>
+
+              <link>http://rss.slashdot.org/Slashdot/slashdot?m=3167</link>
+              <description>Slashback tonight brings some corrections, clarifications, and updates to previous Slashdot stories, including Stallman's comments on GPLv3, Firefly fans clinging to hope, sentence handed down in student felony webpage refresh case, GP2X GPL issues resolved, Korean cloning scientist may get to keep his patents, Apple changes their tune for iTunes ministore, and much more -- Read on for details.&lt;img src="http://rss.slashdot.org/Slashdot/slashdot?g=3167"/&gt;</description>
+              <dc:creator>ScuttleMonkey</dc:creator>
+              <dc:date>2006-01-18T23:59:00+00:00</dc:date>
+              <dc:subject>slashback</dc:subject>
+              <slash:department>different-results-from-the-same-actions</slash:department>
+
+              <slash:section>yro</slash:section>
+              <slash:comments>164</slash:comments>
+              <slash:hit_parade>164,158,133,89,30,16,7</slash:hit_parade>
+              <feedburner:origLink>http://yro.slashdot.org/article.pl?sid=06/01/18/2037259&amp;from=rss</feedburner:origLink>
+            </item>
+            <item rdf:about="http://linux.slashdot.org/article.pl?sid=06/01/18/1945206&amp;from=rss">
+
+              <title>The Debian System Explained</title>
+              <link>http://rss.slashdot.org/Slashdot/slashdot?m=3166</link>
+              <description>An anonymous reader writes "XYZComputing has a great interview with Martin F. Krafft, the author of "The Debian System". From the article: 'Despite Debian GNU/Linux's important role in today's computing environment, it is largely misunderstood and oftentimes even discounted as being an operating system which is exclusively for professionals and elite users. In this book Krafft, explains his concept of Debian, which includes not only the operating system but also its underpinnings. Debian is not only a robust and scalable Linux distribution, but it has many other features which are worth looking into, like its open development cycle and rigorous quality control.'"
+          &lt;p&gt;&lt;a href="http://rss.slashdot.org/~c/Slashdot/slashdot?a=GkVD75"&gt;&lt;img src="http://rss.slashdot.org/~c/Slashdot/slashdot?i=GkVD75" border="0"&gt;&lt;/img&gt;&lt;/a&gt;&lt;/p&gt;&lt;img src="http://rss.slashdot.org/Slashdot/slashdot?g=3166"/&gt;</description>
+              <dc:creator>ScuttleMonkey</dc:creator>
+
+              <dc:date>2006-01-18T22:47:00+00:00</dc:date>
+              <dc:subject>debian</dc:subject>
+              <slash:department>solid-oak-log-for-the-distro-debate-fire</slash:department>
+              <slash:section>linux</slash:section>
+              <slash:comments>170</slash:comments>
+              <slash:hit_parade>170,168,126,75,23,15,7</slash:hit_parade>
+
+              <feedburner:origLink>http://linux.slashdot.org/article.pl?sid=06/01/18/1945206&amp;from=rss</feedburner:origLink>
+            </item>
+            <item rdf:about="http://slashdot.org/article.pl?sid=06/01/18/1931219&amp;from=rss">
+              <title>Futuremark 3DMark06 Released</title>
+              <link>http://rss.slashdot.org/Slashdot/slashdot?m=3165</link>
+              <description>jmke writes "Futuremark has released their latest graphics card evaluation software. The 2006 version features all the latest technologies and will stress even the most expensive video cards. From the announcement: 'Continuing forward in the development of advanced game performance benchmarks, Futuremark announced today the release and immediate availability of 3DMark06. A more comprehensive and unrestricted benchmark than previous versions, 3DMark06 includes an array of 3D graphics, CPU and 3D feature tests for overall performance measurement of current and future PC gaming systems.' Futuremark is offering a free download of the software with limited capability while offering an advanced edition for a price. PC Perspectives also has a nice overview of some of the features available."&lt;img src="http://rss.slashdot.org/Slashdot/slashdot?g=3165"/&gt;</description>
+
+              <dc:creator>ScuttleMonkey</dc:creator>
+              <dc:date>2006-01-18T22:04:00+00:00</dc:date>
+              <dc:subject>graphics</dc:subject>
+              <slash:department>one-chip-to-rule-them-all</slash:department>
+              <slash:section>mainpage</slash:section>
+              <slash:comments>96</slash:comments>
+
+              <slash:hit_parade>96,92,75,48,16,8,6</slash:hit_parade>
+              <feedburner:origLink>http://slashdot.org/article.pl?sid=06/01/18/1931219&amp;from=rss</feedburner:origLink>
+            </item>
+            <item rdf:about="http://science.slashdot.org/article.pl?sid=06/01/18/1832232&amp;from=rss">
+              <title>New Device to Detect Skin Cancer From A Picture?</title>
+              <link>http://rss.slashdot.org/Slashdot/slashdot?m=3164</link>
+
+              <description>JonathanGCohen writes "News.com is reporting on a new machine that can tell you all about your skin's unique features (excessive oil, UV damage, etc.) using an image scan and software to analyze it. Its inventors plan on developing a version that can even detect skin cancer." From the article: "Apart from numbers, the technology, called Clarity Pro, can depict the depth and severity of wrinkles in a 3D chart, show the extent of bacteria-filled pores in a graph, or represent UV damage in purple dots scattered about your face in a white-light image. It can also calculate how long a person can be exposed to the sun, in minutes or hours a day, before incurring more UV damage."&lt;img src="http://rss.slashdot.org/Slashdot/slashdot?g=3164"/&gt;</description>
+              <dc:creator>ScuttleMonkey</dc:creator>
+              <dc:date>2006-01-18T21:19:00+00:00</dc:date>
+              <dc:subject>biotech</dc:subject>
+              <slash:department>snapshot-physicals</slash:department>
+              <slash:section>science</slash:section>
+
+              <slash:comments>68</slash:comments>
+              <slash:hit_parade>68,64,55,41,13,8,6</slash:hit_parade>
+              <feedburner:origLink>http://science.slashdot.org/article.pl?sid=06/01/18/1832232&amp;from=rss</feedburner:origLink>
+            </item>
+            <item rdf:about="http://politics.slashdot.org/article.pl?sid=06/01/18/1722256&amp;from=rss">
+              <title>Piracy Setup Discovered in WV Capitol Building</title>
+
+              <link>http://rss.slashdot.org/Slashdot/slashdot?m=3163</link>
+              <description>arakis writes "Someone in West Virginia has apparently spent tens of thousands in state funds to acquire computers and video gear to copy movies and music. From the article: 'Ferguson confirmed Tuesday that his staff found the makeshift audio-video studio amid his widening probe into spending and other abuses at the state General Services Division.' Looks like some employees are getting the axe for everything from purchasing abuse to time fraud."
+          &lt;p&gt;&lt;a href="http://rss.slashdot.org/~c/Slashdot/slashdot?a=lS9OeC"&gt;&lt;img src="http://rss.slashdot.org/~c/Slashdot/slashdot?i=lS9OeC" border="0"&gt;&lt;/img&gt;&lt;/a&gt;&lt;/p&gt;&lt;img src="http://rss.slashdot.org/Slashdot/slashdot?g=3163"/&gt;</description>
+              <dc:creator>ScuttleMonkey</dc:creator>
+              <dc:date>2006-01-18T20:36:00+00:00</dc:date>
+
+              <dc:subject>media</dc:subject>
+              <slash:department>making-a-little-on-the-side</slash:department>
+              <slash:section>politics</slash:section>
+              <slash:comments>311</slash:comments>
+              <slash:hit_parade>311,304,232,144,47,26,20</slash:hit_parade>
+              <feedburner:origLink>http://politics.slashdot.org/article.pl?sid=06/01/18/1722256&amp;from=rss</feedburner:origLink>
+
+            </item>
+            <item rdf:about="http://slashdot.org/article.pl?sid=06/01/18/1654232&amp;from=rss">
+              <title>Admission Tickets as Text Messages</title>
+              <link>http://rss.slashdot.org/Slashdot/slashdot?m=3162</link>
+              <description>lee1 writes to tell us that InfoWorld is reporting that Smartmachine and their partner Skidata have developed a new way to allow customers to purchase and receive tickets to events. The new ticketing system allows users to "have a ticket sent to their mobile phone via SMS (Short Message Service) in the form of a 2D (two-dimensional) bar code. At the gate, they slide their mobile phone display showing the bar code by a bar code reader." The new technology also claims to help combat the counterfeit, pilferage, and repeat use that can be such a problem for paper tickets.&lt;img src="http://rss.slashdot.org/Slashdot/slashdot?g=3162"/&gt;</description>
+              <dc:creator>ScuttleMonkey</dc:creator>
+
+              <dc:date>2006-01-18T19:53:00+00:00</dc:date>
+              <dc:subject>tech</dc:subject>
+              <slash:department>hope-you-have-a-cell-phone</slash:department>
+              <slash:section>mainpage</slash:section>
+              <slash:comments>215</slash:comments>
+              <slash:hit_parade>215,211,177,100,36,14,8</slash:hit_parade>
+
+              <feedburner:origLink>http://slashdot.org/article.pl?sid=06/01/18/1654232&amp;from=rss</feedburner:origLink>
+            </item>
+            <textinput rdf:about="http://slashdot.org/search.pl">
+              <title>Search Slashdot</title>
+              <description>Search Slashdot stories</description>
+              <name>query</name>
+
+              <link>http://slashdot.org/search.pl</link>
+            </textinput>
+          </rdf:RDF>
+        FEED
+        feed.title
+        feed.subtitle
+        feed.link
+        feed.url
+        feed.time
+        feed.entries.each do |entry|
+          entry.title
+          entry.link
+          entry.content
+          entry.tags
+          entry.author
+          entry.time
+        end
+      end
+      puts "Parse:    " + once.to_s
+      once = Benchmark.measure do
+        output_xml = feed.build_xml("atom", 1.0)
+      end
+      puts "Generate: " + once.to_s
+    end
+  end
+  puts "Total:    " + results.to_s
+end
+
+task :lines do
+  lines, codelines, total_lines, total_codelines = 0, 0, 0, 0
+
+  for file_name in FileList["lib/**/*.rb"]
+    f = File.open(file_name)
+
+    while line = f.gets
+      lines += 1
+      next if line =~ /^\s*$/
+      next if line =~ /^\s*#/
+      codelines += 1
+    end
+    puts "L: #{sprintf("%4d", lines)}, LOC #{sprintf("%4d", codelines)} | #{file_name}"
+    
+    total_lines     += lines
+    total_codelines += codelines
+    
+    lines, codelines = 0, 0
+  end
+
+  puts "Total: Lines #{total_lines}, LOC #{total_codelines}"
+end
+
+
+# Publishing ------------------------------------------------------
+
+desc "Publish the API documentation"
+task :pdoc => [:rdoc] do 
+  Rake::SshDirPublisher.new("vacindak@sporkmonger.com", "public_html/projects/feedtools/api", "doc").upload
+end

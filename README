@@ -1,0 +1,13 @@
+ FeedTools was designed to be a simple XML feed parser, generator, and translator with a built-in
+ caching system.
+
+== Example
+  slashdot_feed = FeedTools::Feed.open('http://www.slashdot.org/index.rss')
+  slashdot_feed.title
+  => "Slashdot"
+  slashdot_feed.description
+  => "News for nerds, stuff that matters"
+  slashdot_feed.link       
+  => "http://slashdot.org/"
+  slashdot_feed.items.first.find_node("slash:hitparade/text()").to_s
+  => "43,37,28,23,11,3,1"
