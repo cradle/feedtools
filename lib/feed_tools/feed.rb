@@ -31,9 +31,15 @@ module FeedTools
     class << self
       include FeedTools::GenericHelper
       private :validate_options
+      private :try_xpaths_all
+      private :try_xpaths
+      private :select_not_blank
     end
     include FeedTools::GenericHelper
     private :validate_options
+    private :try_xpaths_all
+    private :try_xpaths
+    private :select_not_blank
     # :startdoc:
   
     # Represents a feed/feed item's category

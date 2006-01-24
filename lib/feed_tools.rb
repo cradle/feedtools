@@ -155,6 +155,14 @@ end
 #  slashdot_feed.items.first.find_node("slash:hitparade/text()").value
 #  => "43,37,28,23,11,3,1"
 module FeedTools
+  class << self
+    include FeedTools::GenericHelper
+    private :validate_options
+    private :try_xpaths_all
+    private :try_xpaths
+    private :select_not_blank
+  end
+  
   @configurations = {}
   
   def FeedTools.load_configurations

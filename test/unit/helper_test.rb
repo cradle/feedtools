@@ -145,4 +145,10 @@ class HelperTest < Test::Unit::TestCase
     assert_equal("urn:uuid:fa6d0b87-3f36-517d-b9b7-1349f8c3fc6b",
       FeedTools.build_urn_uri('http://sporkmonger.com/'))
   end
+  
+  def test_build_merged_feed
+    merged_feed = FeedTools.build_merged_feed([
+      "http://rss.slashdot.org/Slashdot/slashdot"
+    ])
+  end
 end

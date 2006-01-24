@@ -29,6 +29,9 @@ module FeedTools
     include REXML
     include GenericHelper
     private :validate_options
+    private :try_xpaths_all
+    private :try_xpaths
+    private :select_not_blank
     # :startdoc:
     
     # This class stores information about a feed item's file enclosures.
