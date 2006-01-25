@@ -2111,6 +2111,7 @@ module FeedTools
         # RDF-based rss format
         return xml_builder.tag!("rdf:RDF",
             "xmlns" => FEED_TOOLS_NAMESPACES['rss10'],
+            "xmlns:content" => FEED_TOOLS_NAMESPACES['content'],
             "xmlns:rdf" => FEED_TOOLS_NAMESPACES['rdf'],
             "xmlns:dc" => FEED_TOOLS_NAMESPACES['dc'],
             "xmlns:syn" => FEED_TOOLS_NAMESPACES['syn'],
@@ -2204,6 +2205,7 @@ module FeedTools
       elsif feed_type == "rss"
         # normal rss format
         return xml_builder.rss("version" => "2.0",
+            "xmlns:content" => FEED_TOOLS_NAMESPACES['content'],
             "xmlns:rdf" => FEED_TOOLS_NAMESPACES['rdf'],
             "xmlns:dc" => FEED_TOOLS_NAMESPACES['dc'],
             "xmlns:taxo" => FEED_TOOLS_NAMESPACES['taxo'],
