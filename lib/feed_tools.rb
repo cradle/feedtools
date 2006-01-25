@@ -126,7 +126,12 @@ begin
 
   require_gem('activesupport', '>= 1.1.1')
   require_gem('activerecord', '>= 1.11.1')
-  require_gem('uuidtools', '>= 0.1.2')
+
+  begin
+    require_gem('uuidtools', '>= 0.1.2')
+  rescue Gem::LoadError
+    raise unless defined? UUID
+  end
 
   require 'feed_tools/feed'
   require 'feed_tools/feed_item'

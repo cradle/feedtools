@@ -2,6 +2,7 @@
  * feed cache is set to nil by default now
  * both summary and content elements are generated now
  * fixed bug with feed merging referencing a method that was refactored
+ * no longer dies if uuidtools gem is missing but the UUID class is defined
 == FeedTools 0.2.22
  * fixed another atom generation error
 == FeedTools 0.2.21
