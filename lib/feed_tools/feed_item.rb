@@ -1972,7 +1972,6 @@ module FeedTools
           unless link.nil? || link == ""
             xml_builder.link("href" => FeedTools.escape_entities(self.link),
                 "rel" => "alternate",
-                "type" => "text/html",
                 "title" => FeedTools.escape_entities(title))
           end
           if !self.content.blank?

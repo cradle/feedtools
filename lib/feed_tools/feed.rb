@@ -2272,7 +2272,6 @@ module FeedTools
           unless self.link.blank?
             xml_builder.link("href" => FeedTools.escape_entities(self.link),
                 "rel" => "alternate",
-                "type" => "text/html",
                 "title" => FeedTools.escape_entities(self.title))
           end
           unless description.blank?
