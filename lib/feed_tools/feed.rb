@@ -1067,10 +1067,10 @@ module FeedTools
         @itunes_summary = select_not_blank([
           try_xpaths(self.channel_node, [
             "itunes:summary/text()"
-          ]),
+          ], :select_result_value => true),
           try_xpaths(self.root_node, [
             "itunes:summary/text()"
-          ])
+          ], :select_result_value => true)
         ])
         unless @itunes_summary.blank?
           @itunes_summary = FeedTools.unescape_entities(@itunes_summary)
@@ -1093,10 +1093,10 @@ module FeedTools
         @itunes_subtitle = select_not_blank([
           try_xpaths(self.channel_node, [
             "itunes:subtitle/text()"
-          ]),
+          ], :select_result_value => true),
           try_xpaths(self.root_node, [
             "itunes:subtitle/text()"
-          ])
+          ], :select_result_value => true)
         ])
         unless @itunes_subtitle.blank?
           @itunes_subtitle = FeedTools.unescape_entities(@itunes_subtitle)

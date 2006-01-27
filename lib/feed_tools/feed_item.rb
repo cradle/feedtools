@@ -505,7 +505,7 @@ module FeedTools
       if @itunes_summary.nil?
         @itunes_summary = try_xpaths(self.root_node, [
           "itunes:summary/text()"
-        ])
+        ], :select_result_value => true)
         unless @itunes_summary.blank?
           @itunes_summary = FeedTools.unescape_entities(@itunes_summary)
           @itunes_summary = FeedTools.sanitize_html(@itunes_summary)
@@ -526,7 +526,7 @@ module FeedTools
       if @itunes_subtitle.nil?
         @itunes_subtitle = try_xpaths(self.root_node, [
           "itunes:subtitle/text()"
-        ])
+        ], :select_result_value => true)
         unless @itunes_subtitle.blank?
           @itunes_subtitle = FeedTools.unescape_entities(@itunes_subtitle)
           @itunes_subtitle = FeedTools.sanitize_html(@itunes_subtitle)
