@@ -1504,6 +1504,7 @@ module FeedTools
           "atom:modified/text()",
           "modified/text()",
           "time/text()",
+          "lastBuildDate/text()",
           "atom10:issued/text()",
           "atom03:issued/text()",
           "atom:issued/text()",
@@ -1614,7 +1615,8 @@ module FeedTools
           "atom10:modified/text()",
           "atom03:modified/text()",
           "atom:modified/text()",
-          "modified/text()"
+          "modified/text()",
+          "lastBuildDate/text()"
         ], :select_result_value => true)
         if !updated_string.blank?
           @updated = Time.parse(updated_string).gmtime rescue nil
@@ -1877,7 +1879,9 @@ module FeedTools
               xml_builder.cdata!(self.content)
             end
           end
-          unless self.time.nil?
+          if !self.published.nil?
+            xml_builder.pubDate(self.published.rfc822)            
+          elsif !self.time.nil?
             xml_builder.pubDate(self.time.rfc822)            
           end
           unless self.guid.blank?

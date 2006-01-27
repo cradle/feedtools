@@ -1486,6 +1486,7 @@ module FeedTools
           "atom:modified/text()",
           "modified/text()",
           "time/text()",
+          "lastBuildDate/text()",
           "atom10:issued/text()",
           "atom03:issued/text()",
           "atom:issued/text()",
@@ -1515,12 +1516,12 @@ module FeedTools
       return @time
     end
   
-    # Sets the feed item time
+    # Sets the feed time
     def time=(new_time)
       @time = new_time
     end
   
-    # Returns the feed item updated time
+    # Returns the feed updated time
     def updated
       if @updated.nil?
         updated_string = try_xpaths(self.channel_node, [
@@ -1531,7 +1532,8 @@ module FeedTools
           "atom10:modified/text()",
           "atom03:modified/text()",
           "atom:modified/text()",
-          "modified/text()"
+          "modified/text()",
+          "lastBuildDate/text()"
         ], :select_result_value => true)
         unless updated_string.blank?
           @updated = Time.parse(updated_string).gmtime rescue nil
@@ -1542,12 +1544,12 @@ module FeedTools
       return @updated
     end
   
-    # Sets the feed item updated time
+    # Sets the feed updated time
     def updated=(new_updated)
       @updated = new_updated
     end
 
-    # Returns the feed item published time
+    # Returns the feed published time
     def published
       if @published.nil?
         published_string = try_xpaths(self.channel_node, [
@@ -1571,7 +1573,7 @@ module FeedTools
       return @published
     end
   
-    # Sets the feed item published time
+    # Sets the feed published time
     def published=(new_published)
       @published = new_published
     end
@@ -2213,14 +2215,20 @@ module FeedTools
             "xmlns:itunes" => FEED_TOOLS_NAMESPACES['itunes'],
             "xmlns:media" => FEED_TOOLS_NAMESPACES['media']) do
           xml_builder.channel do
-            unless title.blank?
+            unless self.title.blank?
               xml_builder.title(title)
             end
-            unless link.blank?
+            unless self.link.blank?
               xml_builder.link(link)
             end
-            unless description.blank?
+            unless self.description.blank?
               xml_builder.description(description)
+            end
+            unless self.published.blank?
+              xml_builder.pubDate(self.published.rfc822)
+            end
+            unless self.updated.blank?
+              xml_builder.lastBuildDate(self.updated.rfc822)
             end
             xml_builder.ttl((time_to_live / 1.minute).to_s)
             xml_builder.generator(
