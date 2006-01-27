@@ -1148,10 +1148,10 @@ module FeedTools
             try_xpaths(itunes_category, ["itunes:category/@text"],
               :select_result_value => true)
           category_path = genre
-          if category != ""
+          if !category.blank?
             category_path << "/" + category
           end
-          if subcategory != ""
+          if !subcategory.blank?
             category_path << "/" + subcategory
           end          
           for enclosure in @enclosures
