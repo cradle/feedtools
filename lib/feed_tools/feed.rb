@@ -1895,6 +1895,11 @@ module FeedTools
     end
 
     # Sets the feed generator
+    #
+    # Note: Setting this variable will NOT cause this to appear in any
+    # generated output.  The generator string is created from the
+    # <tt>:generator_name</tt> and <tt>:generator_href</tt> configuration
+    # variables.
     def generator=(new_generator)
       @generator = new_generator
     end
