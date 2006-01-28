@@ -6,6 +6,7 @@
  * updated timestamp handling and generation
  * fixed issue with itunes categories
  * fixed itunes subtitle/summary
+ * fixed entry assignment bug
 == FeedTools 0.2.22
  * fixed another atom generation error
 == FeedTools 0.2.21

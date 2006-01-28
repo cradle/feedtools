@@ -1966,7 +1966,7 @@ module FeedTools
   
     # Returns the feed entries
     def entries
-      if @entries.blank?
+      if @entries.nil?
         raw_entries = select_not_blank([
           try_xpaths_all(self.channel_node, [
             "atom10:entry",
