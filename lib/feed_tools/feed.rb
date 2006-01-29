@@ -2108,6 +2108,12 @@ module FeedTools
           :indent => 2, :escape_attrs => false))
       xml_builder.instruct! :xml, :version => "1.0",
         :encoding => (FeedTools.configurations[:output_encoding] or "utf-8")
+      if feed_type.nil?
+        feed_type = self.feed_type
+      end
+      if feed_version.nil?
+        feed_version = self.feed_version
+      end
       if feed_type == "rss" && (version == nil || version <= 0.0)
         version = 1.0
       elsif feed_type == "atom" && (version == nil || version <= 0.0)
