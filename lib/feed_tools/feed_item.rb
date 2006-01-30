@@ -194,6 +194,14 @@ module FeedTools
       return parent_feed
     end
     
+    # Returns the feed item's encoding.
+    def encoding
+      if @encoding.nil?
+        @encoding = self.feed.encoding
+      end
+      return @encoding
+    end
+    
     # Returns the feed item's raw data.
     def feed_data
       return @feed_data
@@ -317,7 +325,11 @@ module FeedTools
         unless @title.nil?
           @title = FeedTools.sanitize_html(@title, :strip)
           @title = FeedTools.unescape_entities(@title) if repair_entities
-          @title = FeedTools.tidy_html(@title) unless repair_entities
+          unless repair_entities
+            @title = FeedTools.tidy_html(@title,
+              :input_encoding => "utf-8",
+              :output_encoding => "utf-8")
+          end
         end
         if !@title.blank? && FeedTools.configurations[:strip_comment_count]
           # Some blogging tools include the number of comments in a post
@@ -409,7 +421,11 @@ module FeedTools
         unless @content.blank?
           @content = FeedTools.sanitize_html(@content, :strip)
           @content = FeedTools.unescape_entities(@content) if repair_entities
-          @content = FeedTools.tidy_html(@content)
+          unless repair_entities
+            @content = FeedTools.tidy_html(@content,
+              :input_encoding => "utf-8",
+              :output_encoding => "utf-8")
+          end
         end
 
         @content = @content.strip unless @content.nil?
@@ -490,7 +506,11 @@ module FeedTools
         unless @summary.blank?
           @summary = FeedTools.sanitize_html(@summary, :strip)
           @summary = FeedTools.unescape_entities(@summary) if repair_entities
-          @summary = FeedTools.tidy_html(@summary)
+          unless repair_entities
+            @summary = FeedTools.tidy_html(@summary,
+              :input_encoding => "utf-8",
+              :output_encoding => "utf-8")
+          end
         end
 
         @summary = @summary.strip unless @summary.nil?
@@ -839,7 +859,11 @@ module FeedTools
         unless @rights.nil?
           @rights = FeedTools.sanitize_html(@rights, :strip)
           @rights = FeedTools.unescape_entities(@rights) if repair_entities
-          @rights = FeedTools.tidy_html(@rights)
+          unless repair_entities
+            @rights = FeedTools.tidy_html(@rights,
+              :input_encoding => "utf-8",
+              :output_encoding => "utf-8")
+          end
         end
 
         @rights = @rights.strip unless @rights.nil?

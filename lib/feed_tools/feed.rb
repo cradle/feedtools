@@ -973,7 +973,11 @@ module FeedTools
         unless @title.nil?
           @title = FeedTools.sanitize_html(@title, :strip)
           @title = FeedTools.unescape_entities(@title) if repair_entities
-          @title = FeedTools.tidy_html(@title) unless repair_entities
+          unless repair_entities
+            @title = FeedTools.tidy_html(@title,
+              :input_encoding => "utf-8",
+              :output_encoding => "utf-8")
+          end
         end
         @title.gsub!(/>\n</, "><")
         @title.gsub!(/\n/, " ")
@@ -1053,7 +1057,11 @@ module FeedTools
         unless @subtitle.blank?
           @subtitle = FeedTools.sanitize_html(@subtitle, :strip)
           @subtitle = FeedTools.unescape_entities(@subtitle) if repair_entities
-          @subtitle = FeedTools.tidy_html(@subtitle)
+          unless repair_entities
+            @subtitle = FeedTools.tidy_html(@subtitle,
+              :input_encoding => "utf-8",
+              :output_encoding => "utf-8")
+          end
         end
 
         @subtitle = @subtitle.strip unless @subtitle.nil?
@@ -1752,7 +1760,11 @@ module FeedTools
         unless @rights.nil?
           @rights = FeedTools.sanitize_html(@rights, :strip)
           @rights = FeedTools.unescape_entities(@rights) if repair_entities
-          @rights = FeedTools.tidy_html(@rights)
+          unless repair_entities
+            @rights = FeedTools.tidy_html(@rights,
+              :input_encoding => "utf-8",
+              :output_encoding => "utf-8")
+          end
         end
 
         @rights = @rights.strip unless @rights.nil?

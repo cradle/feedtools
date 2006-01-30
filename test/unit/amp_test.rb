@@ -1009,9 +1009,9 @@ class AmpTest < Test::Unit::TestCase
     FEED
     ) { |feed|
       assert_equal("<strong>1 &amp; 2 & 3</strong>", feed.title)
-      assert_equal("<strong>1 &amp; 2 &amp; 3</strong>", feed.tagline)
+      assert_equal("<strong>1 &amp; 2 & 3</strong>", feed.tagline)
       assert_equal("<strong>1 &amp; 2 & 3</strong>", feed.entries.first.title)
-      assert_equal("<strong>1 &amp; 2 &amp; 3</strong>", feed.entries.first.content)
+      assert_equal("<strong>1 &amp; 2 & 3</strong>", feed.entries.first.content)
     }
   end
 end

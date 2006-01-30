@@ -533,6 +533,13 @@ module FeedTools
   # Tidys up the html
   def FeedTools.tidy_html(html, options = {})
     return nil if html.nil?
+
+    validate_options([ :input_encoding,
+                       :output_encoding ],
+                     options.keys)
+    options = { :input_encoding => "utf-8",
+                :output_encoding => "utf-8" }.merge(options)
+    
     if FeedTools.tidy_enabled?
       is_fragment = true
       html.gsub!(/&lt;!'/, "&amp;lt;!'")
@@ -552,10 +559,10 @@ module FeedTools
         tidy.options.logical_emphasis = true
         # TODO: Make this match the actual encoding of the feed
         # =====================================================
-        tidy.options.input_encoding = "utf8"
-        tidy.options.output_encoding = "ascii"
+        tidy.options.input_encoding = options[:input_encoding]
+        tidy.options.output_encoding = options[:output_encoding]
         tidy.options.ascii_chars = false
-        tidy.options.doctype = "omit"        
+        tidy.options.doctype = "omit"
         xml = tidy.clean(html)
         xml
       end
