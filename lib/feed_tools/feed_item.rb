@@ -1885,7 +1885,7 @@ module FeedTools
             xml_builder.pubDate(self.time.rfc822)            
           end
           unless self.guid.blank?
-            if FeedTools.is_uri?(self.guid)
+            if FeedTools.is_uri?(self.guid) && (self.guid =~ /^http/)
               xml_builder.guid(self.guid, "isPermaLink" => "true")
             else
               xml_builder.guid(self.guid, "isPermaLink" => "false")
