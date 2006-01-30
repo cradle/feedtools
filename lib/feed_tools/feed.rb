@@ -2307,7 +2307,8 @@ module FeedTools
           unless self.link.blank?
             xml_builder.link("href" => FeedTools.escape_entities(self.link),
                 "rel" => "alternate",
-                "title" => FeedTools.escape_entities(self.title))
+                "title" => FeedTools.escape_entities(
+                  FeedTools.strip_html(self.title)))
           end
           unless self.subtitle.blank?
             xml_builder.subtitle(self.subtitle,
