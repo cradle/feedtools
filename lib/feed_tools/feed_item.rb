@@ -1852,6 +1852,13 @@ module FeedTools
             for tag in tags
               xml_builder.tag!("category", tag)
             end
+            xml_builder.tag!("dc:subject") do
+              xml_builder.tag!("rdf:Bag") do
+                for tag in tags
+                  xml_builder.tag!("rdf:li", tag)
+                end
+              end
+            end
             if self.feed.podcast?
               xml_builder.tag!("itunes:keywords", tags.join(", "))
             end
@@ -1893,7 +1900,7 @@ module FeedTools
           end
           unless tags.nil? || tags.size == 0
             for tag in tags
-              xml_builder.tag!("category", tag)
+              xml_builder.tag!("dc:subject", tag)
             end
             if self.feed.podcast?
               xml_builder.tag!("itunes:keywords", tags.join(", "))
