@@ -2255,6 +2255,8 @@ module FeedTools
             end
             unless self.description.blank?
               xml_builder.description(description)
+            else
+              xml_builder.description
             end
             unless self.published.blank?
               xml_builder.pubDate(self.published.rfc822)
