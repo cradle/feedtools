@@ -1985,6 +1985,10 @@ module FeedTools
           ]),
           try_xpaths_all(self.root_node, [
             "rss10:item",
+            "rss11:items/rss11:item",
+            "rss11:items/item",
+            "items/rss11:item",
+            "items/item",
             "item",
             "atom10:entry",
             "atom03:entry",
@@ -1993,6 +1997,10 @@ module FeedTools
           ]),
           try_xpaths_all(self.channel_node, [
             "rss10:item",
+            "rss11:items/rss11:item",
+            "rss11:items/item",
+            "items/rss11:item",
+            "items/item",
             "item"
           ])
         ])
