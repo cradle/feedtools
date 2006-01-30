@@ -1849,7 +1849,10 @@ module FeedTools
             xml_builder.tag!("dc:date", time.iso8601)            
           end
           unless tags.nil? || tags.size == 0
-            xml_builder.tag!("taxo:topics") do
+#             for tag in tags
+#               xml_builder.tag!("category", tag)
+#             end
+            xml_builder.tag!("dc:subject") do
               xml_builder.tag!("rdf:Bag") do
                 for tag in tags
                   xml_builder.tag!("rdf:li", tag)
@@ -1896,7 +1899,10 @@ module FeedTools
             end
           end
           unless tags.nil? || tags.size == 0
-            xml_builder.tag!("taxo:topics") do
+#             for tag in tags
+#               xml_builder.tag!("category", tag)
+#             end
+            xml_builder.tag!("dc:subject") do
               xml_builder.tag!("rdf:Bag") do
                 for tag in tags
                   xml_builder.tag!("rdf:li", tag)
