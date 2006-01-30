@@ -1868,7 +1868,7 @@ module FeedTools
         # normal rss format
         return xml_builder.item do
           unless self.title.blank?
-            xml_builder.title(self.title)
+            xml_builder.title(FeedTools.strip_html(self.title))
           end
           unless self.link.blank?
             xml_builder.link(link)
