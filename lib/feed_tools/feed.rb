@@ -2103,7 +2103,7 @@ module FeedTools
     end
 
     # Generates xml based on the content of the feed
-    def build_xml(feed_type=(self.feed_type or "atom"), version=nil,
+    def build_xml(feed_type=(self.feed_type or "atom"), feed_version=nil,
         xml_builder=Builder::XmlMarkup.new(
           :indent => 2, :escape_attrs => false))
       xml_builder.instruct! :xml, :version => "1.0",
@@ -2114,13 +2114,15 @@ module FeedTools
       if feed_version.nil?
         feed_version = self.feed_version
       end
-      if feed_type == "rss" && (version == nil || version <= 0.0)
-        version = 1.0
-      elsif feed_type == "atom" && (version == nil || version <= 0.0)
-        version = 1.0
+      if feed_type == "rss" &&
+          (feed_version == nil || feed_version <= 0.0)
+        feed_version = 1.0
+      elsif feed_type == "atom" &&
+          (feed_version == nil || feed_version <= 0.0)
+        feed_version = 1.0
       end
-      if feed_type == "rss" && (version == 0.9 || version == 1.0 ||
-          version == 1.1)
+      if feed_type == "rss" &&
+          (feed_version == 0.9 || feed_version == 1.0 || feed_version == 1.1)
         # RDF-based rss format
         return xml_builder.tag!("rdf:RDF",
             "xmlns" => FEED_TOOLS_NAMESPACES['rss10'],
@@ -2177,7 +2179,7 @@ module FeedTools
                 end
               end
             end
-            build_xml_hook(feed_type, version, xml_builder)
+            build_xml_hook(feed_type, feed_version, xml_builder)
           end
           unless images.nil? || images.empty?
             best_image = nil
@@ -2211,7 +2213,7 @@ module FeedTools
           end
           unless items.nil?
             for item in items
-              item.build_xml(feed_type, version, xml_builder)
+              item.build_xml(feed_type, feed_version, xml_builder)
             end
           end
         end
@@ -2244,17 +2246,17 @@ module FeedTools
             xml_builder.ttl((time_to_live / 1.minute).to_s)
             xml_builder.generator(
               FeedTools.configurations[:generator_href])
-            build_xml_hook(feed_type, version, xml_builder)
+            build_xml_hook(feed_type, feed_version, xml_builder)
             unless items.nil?
               for item in items
-                item.build_xml(feed_type, version, xml_builder)
+                item.build_xml(feed_type, feed_version, xml_builder)
               end
             end
           end
         end
-      elsif feed_type == "atom" && version == 0.3
+      elsif feed_type == "atom" && feed_version == 0.3
         raise "Atom 0.3 is obsolete."
-      elsif feed_type == "atom" && version == 1.0
+      elsif feed_type == "atom" && feed_version == 1.0
         # normal atom format
         return xml_builder.feed("xmlns" => FEED_TOOLS_NAMESPACES['atom10'],
             "xml:lang" => language) do
@@ -2315,10 +2317,10 @@ module FeedTools
           else
             raise "Cannot build feed, missing feed unique id."
           end
-          build_xml_hook(feed_type, version, xml_builder)
+          build_xml_hook(feed_type, feed_version, xml_builder)
           unless items.nil?
             for item in items
-              item.build_xml(feed_type, version, xml_builder)
+              item.build_xml(feed_type, feed_version, xml_builder)
             end
           end
         end
