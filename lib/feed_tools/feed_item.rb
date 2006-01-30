@@ -1825,15 +1825,18 @@ module FeedTools
         end
         return xml_builder.item("rdf:about" =>
             FeedTools.escape_entities(link)) do
-          unless title.blank?
-            xml_builder.title(title)
+          unless self.title.blank?
+            xml_builder.title(self.title)
           else
             xml_builder.title
           end
-          unless link.blank?
-            xml_builder.link(link)
+          unless self.link.blank?
+            xml_builder.link(self.link)
           else
             xml_builder.link
+          end
+          unless self.author.nil? || self.author.name.nil?
+            xml_builder.tag!("dc:creator", self.author.name)
           end
           unless self.summary.blank?
             xml_builder.description(self.summary)
@@ -1866,6 +1869,9 @@ module FeedTools
           end
           unless self.link.blank?
             xml_builder.link(link)
+          end
+          unless self.author.nil? || self.author.name.nil?
+            xml_builder.tag!("dc:creator", self.author.name)
           end
           unless self.summary.blank?
             xml_builder.description(self.summary)
