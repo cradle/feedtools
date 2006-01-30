@@ -788,11 +788,11 @@ module FeedTools
       @media_thumbnail_link = new_media_thumbnail_link
     end
 
-    # Returns the feed item's copyright information
-    def copyright
-      if @copyright.nil?
+    # Returns the feed item's rights information
+    def rights
+      if @rights.nil?
         repair_entities = false
-        copyright_node = try_xpaths(self.root_node, [
+        rights_node = try_xpaths(self.root_node, [
           "atom10:copyright",
           "atom03:copyright",
           "atom:copyright",
@@ -801,52 +801,52 @@ module FeedTools
           "dc:rights",
           "rights"
         ])
-        if copyright_node.nil?
+        if rights_node.nil?
           return nil
         end
-        copyright_type = try_xpaths(copyright_node, "@type",
+        rights_type = try_xpaths(rights_node, "@type",
           :select_result_value => true)
-        copyright_mode = try_xpaths(copyright_node, "@mode",
+        rights_mode = try_xpaths(rights_node, "@mode",
           :select_result_value => true)
-        copyright_encoding = try_xpaths(copyright_node, "@encoding",
+        rights_encoding = try_xpaths(rights_node, "@encoding",
           :select_result_value => true)
 
         # Note that we're checking for misuse of type, mode and encoding here
-        if !copyright_encoding.blank?
-          @copyright =
+        if !rights_encoding.blank?
+          @rights =
             "[Embedded data objects are not currently supported.]"
-        elsif copyright_node.cdatas.size > 0
-          @copyright = copyright_node.cdatas.first.value
-        elsif copyright_type == "base64" || copyright_mode == "base64" ||
-            copyright_encoding == "base64"
-          @copyright = Base64.decode64(copyright_node.inner_xml.strip)
-        elsif copyright_type == "xhtml" || copyright_mode == "xhtml" ||
-            copyright_type == "xml" || copyright_mode == "xml" ||
-            copyright_type == "application/xhtml+xml"
-          @copyright = copyright_node.inner_xml
-        elsif copyright_type == "escaped" || copyright_mode == "escaped"
-          @copyright = FeedTools.unescape_entities(
-            copyright_node.inner_xml)
+        elsif rights_node.cdatas.size > 0
+          @rights = rights_node.cdatas.first.value
+        elsif rights_type == "base64" || rights_mode == "base64" ||
+            rights_encoding == "base64"
+          @rights = Base64.decode64(rights_node.inner_xml.strip)
+        elsif rights_type == "xhtml" || rights_mode == "xhtml" ||
+            rights_type == "xml" || rights_mode == "xml" ||
+            rights_type == "application/xhtml+xml"
+          @rights = rights_node.inner_xml
+        elsif rights_type == "escaped" || rights_mode == "escaped"
+          @rights = FeedTools.unescape_entities(
+            rights_node.inner_xml)
         else
-          @copyright = copyright_node.inner_xml
+          @rights = rights_node.inner_xml
           repair_entities = true
         end
 
-        unless @copyright.nil?
-          @copyright = FeedTools.sanitize_html(@copyright, :strip)
-          @copyright = FeedTools.unescape_entities(@copyright) if repair_entities
-          @copyright = FeedTools.tidy_html(@copyright)
+        unless @rights.nil?
+          @rights = FeedTools.sanitize_html(@rights, :strip)
+          @rights = FeedTools.unescape_entities(@rights) if repair_entities
+          @rights = FeedTools.tidy_html(@rights)
         end
 
-        @copyright = @copyright.strip unless @copyright.nil?
-        @copyright = nil if @copyright.blank?
+        @rights = @rights.strip unless @rights.nil?
+        @rights = nil if @rights.blank?
       end
-      return @copyright
+      return @rights
     end
 
-    # Sets the feed item's copyright information
-    def copyright=(new_copyright)
-      @copyright = new_copyright
+    # Sets the feed item's rights information
+    def rights=(new_rights)
+      @rights = new_rights
     end
 
     # Returns all feed item enclosures
@@ -1851,6 +1851,9 @@ module FeedTools
           unless time.nil?
             xml_builder.tag!("dc:date", time.iso8601)            
           end
+          unless self.rights.blank?
+            xml_builder.tag!("dc:rights", self.rights)
+          end
           unless tags.nil? || tags.size == 0
             for tag in tags
               xml_builder.tag!("dc:subject", tag)
@@ -1885,6 +1888,9 @@ module FeedTools
             xml_builder.pubDate(self.published.rfc822)            
           elsif !self.time.nil?
             xml_builder.pubDate(self.time.rfc822)            
+          end
+          unless self.copyright.blank?
+            xml_builder.tag!("dc:rights", self.copyright)
           end
           unless self.guid.blank?
             if FeedTools.is_uri?(self.guid) && (self.guid =~ /^http/)
@@ -1992,6 +1998,9 @@ module FeedTools
           unless self.published.nil?
             xml_builder.published(self.published.iso8601)            
           end
+          unless self.rights.blank?
+            xml_builder.rights(self.rights)
+          end
           if self.id != nil
             unless FeedTools.is_uri? self.id
               if self.time != nil && self.link != nil
@@ -2041,6 +2050,8 @@ module FeedTools
     alias_method :abstract=, :summary=
     alias_method :description, :summary
     alias_method :description=, :summary=
+    alias_method :copyright, :rights
+    alias_method :copyright=, :rights=
     alias_method :guid, :id
     alias_method :guid=, :id=
     

@@ -1704,10 +1704,10 @@ module FeedTools
     end
       
     # Returns the feed's copyright information
-    def copyright
-      if @copyright.nil?
+    def rights
+      if @rights.nil?
         repair_entities = false
-        copyright_node = try_xpaths(self.channel_node, [
+        rights_node = try_xpaths(self.channel_node, [
           "atom10:copyright",
           "atom03:copyright",
           "atom:copyright",
@@ -1716,52 +1716,52 @@ module FeedTools
           "dc:rights",
           "rights"
         ])
-        if copyright_node.nil?
+        if rights_node.nil?
           return nil
         end
-        copyright_type = try_xpaths(copyright_node, "@type",
+        rights_type = try_xpaths(rights_node, "@type",
           :select_result_value => true)
-        copyright_mode = try_xpaths(copyright_node, "@mode",
+        rights_mode = try_xpaths(rights_node, "@mode",
           :select_result_value => true)
-        copyright_encoding = try_xpaths(copyright_node, "@encoding",
+        rights_encoding = try_xpaths(rights_node, "@encoding",
           :select_result_value => true)
 
         # Note that we're checking for misuse of type, mode and encoding here
-        if !copyright_encoding.blank?
-          @copyright =
+        if !rights_encoding.blank?
+          @rights =
             "[Embedded data objects are not currently supported.]"
-        elsif copyright_node.cdatas.size > 0
-          @copyright = copyright_node.cdatas.first.value
-        elsif copyright_type == "base64" || copyright_mode == "base64" ||
-            copyright_encoding == "base64"
-          @copyright = Base64.decode64(copyright_node.inner_xml.strip)
-        elsif copyright_type == "xhtml" || copyright_mode == "xhtml" ||
-            copyright_type == "xml" || copyright_mode == "xml" ||
-            copyright_type == "application/xhtml+xml"
-          @copyright = copyright_node.inner_xml
-        elsif copyright_type == "escaped" || copyright_mode == "escaped"
-          @copyright = FeedTools.unescape_entities(
-            copyright_node.inner_xml)
+        elsif rights_node.cdatas.size > 0
+          @rights = rights_node.cdatas.first.value
+        elsif rights_type == "base64" || rights_mode == "base64" ||
+            rights_encoding == "base64"
+          @rights = Base64.decode64(rights_node.inner_xml.strip)
+        elsif rights_type == "xhtml" || rights_mode == "xhtml" ||
+            rights_type == "xml" || rights_mode == "xml" ||
+            rights_type == "application/xhtml+xml"
+          @rights = rights_node.inner_xml
+        elsif rights_type == "escaped" || rights_mode == "escaped"
+          @rights = FeedTools.unescape_entities(
+            rights_node.inner_xml)
         else
-          @copyright = copyright_node.inner_xml
+          @rights = rights_node.inner_xml
           repair_entities = true
         end
 
-        unless @copyright.nil?
-          @copyright = FeedTools.sanitize_html(@copyright, :strip)
-          @copyright = FeedTools.unescape_entities(@copyright) if repair_entities
-          @copyright = FeedTools.tidy_html(@copyright)
+        unless @rights.nil?
+          @rights = FeedTools.sanitize_html(@rights, :strip)
+          @rights = FeedTools.unescape_entities(@rights) if repair_entities
+          @rights = FeedTools.tidy_html(@rights)
         end
 
-        @copyright = @copyright.strip unless @copyright.nil?
-        @copyright = nil if @copyright.blank?
+        @rights = @rights.strip unless @rights.nil?
+        @rights = nil if @rights.blank?
       end
-      return @copyright
+      return @rights
     end
 
-    # Sets the feed's copyright information
-    def copyright=(new_copyright)
-      @copyright = new_copyright
+    # Sets the feed's rights information
+    def rights=(new_rights)
+      @rights = new_rights
     end
 
     # Returns the number of seconds before the feed should expire
@@ -2142,6 +2142,7 @@ module FeedTools
             "xmlns:rdf" => FEED_TOOLS_NAMESPACES['rdf'],
             "xmlns:dc" => FEED_TOOLS_NAMESPACES['dc'],
             "xmlns:syn" => FEED_TOOLS_NAMESPACES['syn'],
+            "xmlns:admin" => FEED_TOOLS_NAMESPACES['admin'],
             "xmlns:taxo" => FEED_TOOLS_NAMESPACES['taxo'],
             "xmlns:itunes" => FEED_TOOLS_NAMESPACES['itunes'],
             "xmlns:media" => FEED_TOOLS_NAMESPACES['media']) do
@@ -2170,12 +2171,15 @@ module FeedTools
             else
               xml_builder.description
             end
-            unless language.nil? || language == ""
-              xml_builder.tag!("dc:language", language)
+            unless self.language.blank?
+              xml_builder.tag!("dc:language", self.language)
+            end
+            unless self.rights.blank?
+              xml_builder.tag!("dc:rights", self.rights)
             end
             xml_builder.tag!("syn:updatePeriod", "hourly")
             xml_builder.tag!("syn:updateFrequency",
-              (time_to_live / 1.hour).to_s)
+              (self.time_to_live / 1.hour).to_s)
             xml_builder.tag!("syn:updateBase", Time.mktime(1970).iso8601)
             xml_builder.items do
               xml_builder.tag!("rdf:Seq") do
@@ -2191,6 +2195,9 @@ module FeedTools
                 end
               end
             end
+            xml_builder.tag!(
+              "admin:generatorAgent",
+              "rdf:resource" => FeedTools.configurations[:generator_href])
             build_xml_hook(feed_type, feed_version, xml_builder)
           end
           unless self.images.blank?
@@ -2255,6 +2262,9 @@ module FeedTools
             unless self.updated.blank?
               xml_builder.lastBuildDate(self.updated.rfc822)
             end
+            unless self.copyright.blank?
+              xml_builder.copyright(self.copyright)
+            end
             xml_builder.ttl((time_to_live / 1.minute).to_s)
             xml_builder.generator(
               FeedTools.configurations[:generator_href])
@@ -2299,7 +2309,7 @@ module FeedTools
                 "rel" => "alternate",
                 "title" => FeedTools.escape_entities(self.title))
           end
-          unless description.blank?
+          unless self.subtitle.blank?
             xml_builder.subtitle(self.subtitle,
                 "type" => "html")
           end
@@ -2311,6 +2321,9 @@ module FeedTools
             xml_builder.updated(self.time.iso8601)
           else
             xml_builder.updated(Time.now.gmtime.iso8601)
+          end
+          unless self.rights.blank?
+            xml_builder.rights(self.rights)
           end
           xml_builder.generator(FeedTools.configurations[:generator_name] +
             " - " + FeedTools.configurations[:generator_href])
@@ -2371,8 +2384,8 @@ module FeedTools
     alias_method :description=, :subtitle=
     alias_method :abstract, :subtitle
     alias_method :abstract=, :subtitle=
-    alias_method :content, :subtitle
-    alias_method :content=, :subtitle=
+    alias_method :copyright, :rights
+    alias_method :copyright=, :rights=
     alias_method :ttl, :time_to_live
     alias_method :ttl=, :time_to_live=
     alias_method :guid, :id
