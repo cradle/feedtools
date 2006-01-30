@@ -1008,6 +1008,8 @@ module FeedTools
           "content",
           "xhtml:body",
           "body",
+          "p:payload",
+          "payload",
           "blurb",
           "info"
         ])

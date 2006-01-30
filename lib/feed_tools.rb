@@ -61,6 +61,7 @@ FEED_TOOLS_NAMESPACES = {
   "itunes" => "http://www.itunes.com/dtds/podcast-1.0.dtd",
   "l" => "http://purl.org/rss/1.0/modules/link/",
   "media" => "http://search.yahoo.com/mrss",
+  "p" => "http://purl.org/net/rss1.1/payload#",
   "pingback" => "http://madskills.com/public/xml/rss/module/pingback/",
   "prism" => "http://prismstandard.org/namespaces/1.2/basic/",
   "rdf" => "http://www.w3.org/1999/02/22-rdf-syntax-ns#",

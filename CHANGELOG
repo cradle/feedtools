@@ -7,6 +7,7 @@
  * fixed issue with itunes categories
  * fixed itunes subtitle/summary
  * fixed entry assignment bug
+ * added support for the payload module
 == FeedTools 0.2.22
  * fixed another atom generation error
 == FeedTools 0.2.21
