@@ -1826,7 +1826,7 @@ module FeedTools
         return xml_builder.item("rdf:about" =>
             FeedTools.escape_entities(link)) do
           unless self.title.blank?
-            xml_builder.title(self.title)
+            xml_builder.title(FeedTools.strip_html(self.title))
           else
             xml_builder.title
           end

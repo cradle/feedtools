@@ -2153,7 +2153,7 @@ module FeedTools
           end
           xml_builder.channel(channel_attributes) do
             unless self.title.blank?
-              xml_builder.title(self.title)
+              xml_builder.title(FeedTools.strip_html(self.title))
             else
               xml_builder.title
             end
