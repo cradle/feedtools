@@ -779,7 +779,11 @@ module FeedTools
         when "rss"
           @feed_type = "rss"
         when "channel"
-          @feed_type = "cdf"
+          if self.root_node.namespace == FEED_TOOLS_NAMESPACES['rss11']
+            @feed_type = "rss"
+          else
+            @feed_type = "cdf"
+          end
         end
       end
       return @feed_type
@@ -807,19 +811,19 @@ module FeedTools
         default_namespace = XPath.first(root_node, "@xmlns").to_s.strip
         case self.feed_type
         when "atom"
-          if default_namespace == "http://www.w3.org/2005/Atom"
+          if default_namespace == FEED_TOOLS_NAMESPACES['atom10']
             @feed_version = 1.0
           elsif version != nil
             @feed_version = version
-          elsif default_namespace == "http://purl.org/atom/ns#"
+          elsif default_namespace == FEED_TOOLS_NAMESPACES['atom03']
             @feed_version = 0.3
           end
         when "rss"
-          if default_namespace == "http://my.netscape.com/rdf/simple/0.9/"
+          if default_namespace == FEED_TOOLS_NAMESPACES['rss09']
             @feed_version = 0.9
-          elsif default_namespace == "http://purl.org/rss/1.0/"
+          elsif default_namespace == FEED_TOOLS_NAMESPACES['rss10']
             @feed_version = 1.0
-          elsif default_namespace == "http://purl.org/net/rss1.1#"
+          elsif default_namespace == FEED_TOOLS_NAMESPACES['rss11']
             @feed_version = 1.1
           elsif version != nil
             case version
@@ -2139,17 +2143,17 @@ module FeedTools
               FeedTools.escape_entities(self.link)
           end
           xml_builder.channel(channel_attributes) do
-            unless title.nil? || title == ""
-              xml_builder.title(title)
+            unless self.title.blank?
+              xml_builder.title(self.title)
             else
               xml_builder.title
             end
-            unless link.nil? || link == ""
-              xml_builder.link(link)
+            unless self.link.blank?
+              xml_builder.link(self.link)
             else
               xml_builder.link
             end
-            unless images.nil? || images.empty?
+            unless images.blank?
               xml_builder.image("rdf:resource" => FeedTools.escape_entities(
                 images.first.url))
             end
@@ -2181,7 +2185,7 @@ module FeedTools
             end
             build_xml_hook(feed_type, feed_version, xml_builder)
           end
-          unless images.nil? || images.empty?
+          unless self.images.blank?
             best_image = nil
             for image in self.images
               if image.link != nil
@@ -2189,7 +2193,7 @@ module FeedTools
                 break
               end
             end
-            best_image = images.first if best_image.nil?
+            best_image = self.images.first if best_image.nil?
             xml_builder.image(
                 "rdf:about" => FeedTools.escape_entities(best_image.url)) do
               if !best_image.title.blank?
