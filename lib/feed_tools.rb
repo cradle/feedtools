@@ -182,9 +182,11 @@ module FeedTools
           "+http://www.sporkmonger.com/projects/feedtools/",
         :generator_name => "FeedTools/#{FEED_TOOLS_VERSION}",
         :generator_href => "http://www.sporkmonger.com/projects/feedtools/",
-        :tidy_enabled => false,
+        :tidy_enabled => true,
         :tidy_options => {},
+        :sanitization_enabled => true,
         :sanitize_with_nofollow => true,
+        :always_strip_wrapper_elements => true,
         :timestamp_estimation_enabled => true,
         :url_normalization_enabled => true,
         :strip_comment_count => false,
@@ -386,7 +388,7 @@ module FeedTools
     if url.nil? || url == ""
       return nil
     end
-    normalized_url = url.strip
+    normalized_url = CGI.unescape(url.strip)
 
     # if a url begins with the '/' character, it only makes sense that they
     # meant to be using a file:// url.  Fix it for them.
@@ -554,11 +556,9 @@ module FeedTools
         tidy.options.output_xml = true
         tidy.options.numeric_entities = true
         tidy.options.markup = true
-        tidy.options.indent = false
+        tidy.options.indent = true
         tidy.options.wrap = 0
         tidy.options.logical_emphasis = true
-        # TODO: Make this match the actual encoding of the feed
-        # =====================================================
         tidy.options.input_encoding = options[:input_encoding]
         tidy.options.output_encoding = options[:output_encoding]
         tidy.options.ascii_chars = false
@@ -572,12 +572,10 @@ module FeedTools
         tidy_html.strip!
         tidy_html.gsub!(/^<html>(.|\n)*<body>/, "")
         tidy_html.gsub!(/<\/body>(.|\n)*<\/html>$/, "")
+        tidy_html.gsub!("\t", "  ")
+        tidy_html = unindent(tidy_html, 4)
         tidy_html.strip!
       end
-      tidy_html.gsub!(/&#x26;/, "&amp;")
-      tidy_html.gsub!(/&#38;/, "&amp;")
-      tidy_html.gsub!(/\320\262\320\202\342\204\242/, "\342\200\231")
-      
     else
       tidy_html = html
     end
@@ -585,6 +583,23 @@ module FeedTools
       tidy_html = html.strip
     end
     return tidy_html
+  end
+  
+  # Unindents a text selection by a specified number of spaces.
+  def FeedTools.unindent(text, spaces)
+    lines = text.split("\n")
+    buffer = ""
+    for line in lines
+      for index in 0...spaces
+        if line[0...1] == " "
+          line = line[1..-1]
+        else
+          break
+        end
+      end
+      buffer << line << "\n"
+    end
+    return buffer
   end
 
   # Removes all dangerous html tags from the html formatted text.
@@ -640,8 +655,10 @@ module FeedTools
               end
             end
             for attribute in child.attributes.keys
-              unless acceptable_attributes.include? attribute.downcase
-                child.delete_attribute(attribute)
+              if !(attribute =~ /^xmlns/)
+                unless acceptable_attributes.include? attribute.downcase
+                  child.delete_attribute(attribute)
+                end
               end
             end
           end
@@ -956,7 +973,7 @@ module REXML # :nodoc:
             result << child.to_s
           end
         end
-        return result
+        return result.strip
       end
     end
     

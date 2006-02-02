@@ -197,5 +197,141 @@ module FeedTools
       end
       return []
     end
+
+    # Returns a string containing normalized xhtml from within a REXML node.
+    def extract_xhtml(rexml_node)
+      rexml_node_dup = rexml_node.deep_clone
+      normalize_namespaced_xhtml = lambda do |node, node_dup|
+        if node.kind_of? REXML::Element
+          # Massive hack, relies on REXML not changing
+          for index in 0...node.attributes.values.size
+            attribute = node.attributes.values[index]
+            attribute_dup = node_dup.attributes.values[index]
+            if attribute.namespace == FEED_TOOLS_NAMESPACES['xhtml']
+              attribute_dup.instance_variable_set(
+                "@expanded_name", attribute.name)
+            end
+            if node.namespace == FEED_TOOLS_NAMESPACES['xhtml']
+              if attribute.name == 'xmlns' &&
+                  attribute.value != FEED_TOOLS_NAMESPACES['xhtml']
+                node_dup.attributes.delete('xmlns')
+              end
+
+              if attribute.name == 'xmlns' &&
+                  attribute.value == FEED_TOOLS_NAMESPACES['xhtml']
+                node_dup.attributes.delete('xmlns')
+              end
+
+            end
+          end
+          if node.namespace == FEED_TOOLS_NAMESPACES['xhtml']
+            node_dup.instance_variable_set("@expanded_name", node.name)
+          end
+          if !node.namespace.blank? && node.prefix.blank?
+            if node.namespace != FEED_TOOLS_NAMESPACES['xhtml']
+              node_dup.add_namespace(node.namespace)
+            end
+          end
+        end
+        for index in 0...node.children.size
+          child = node.children[index]
+          child_dup = node_dup.children[index]
+          if child.kind_of? REXML::Element
+            normalize_namespaced_xhtml.call(child, child_dup)
+          end
+        end
+      end
+      normalize_namespaced_xhtml.call(rexml_node, rexml_node_dup)
+      buffer = ""
+      rexml_node_dup.each_child do |child|
+        if child.kind_of? REXML::Comment
+          buffer << "<!--" + child.to_s + "-->"
+        else
+          buffer << child.to_s
+        end
+      end
+      return buffer.strip
+    end
+    
+    # Given a REXML node, returns its content, normalized as HTML.
+    def process_text_construct(content_node, feed_type, feed_version)
+      if content_node.nil?
+        return nil
+      end
+      
+      content = nil
+      root_node_name = nil
+      type = try_xpaths(content_node, "@type",
+        :select_result_value => true)
+      mode = try_xpaths(content_node, "@mode",
+        :select_result_value => true)
+      encoding = try_xpaths(content_node, "@encoding",
+        :select_result_value => true)
+
+      if type.nil?
+        atom_namespaces = [
+          FEED_TOOLS_NAMESPACES['atom10'],
+          FEED_TOOLS_NAMESPACES['atom03']
+        ]
+        if ((atom_namespaces.include?(content_node.namespace) ||
+            atom_namespaces.include?(content_node.root.namespace)) ||
+            feed_type == "atom")
+          type = "text"
+        end
+      end
+        
+      # Note that we're checking for misuse of type, mode and encoding here
+      if content_node.cdatas.size > 0
+        content = content_node.cdatas.first.to_s.strip
+      elsif type == "base64" || mode == "base64" ||
+          encoding == "base64"
+        content = Base64.decode64(content_node.inner_xml.strip)
+      elsif type == "xhtml" || mode == "xhtml" ||
+          type == "xml" || mode == "xml" ||
+          type == "application/xhtml+xml"
+        content = extract_xhtml(content_node)
+      elsif type == "escaped" || mode == "escaped"
+        content = FeedTools.unescape_entities(
+          content_node.inner_xml.strip)
+      elsif type == "text" || mode == "text" ||
+          type == "text/plain" || mode == "text/plain"
+        content = FeedTools.unescape_entities(
+          content_node.inner_xml.strip)
+      else
+        content = content_node.inner_xml.strip
+        repair_entities = true
+      end
+      if type == "text" || mode == "text" ||
+          type == "text/plain" || mode == "text/plain"
+        content = FeedTools.escape_entities(content)
+      end        
+      unless content.nil?
+        if FeedTools.configurations[:sanitization_enabled]
+          content = FeedTools.sanitize_html(content, :strip)
+        end
+        content = FeedTools.unescape_entities(content) if repair_entities
+        content = FeedTools.tidy_html(content)
+      end
+      content.gsub!("\t", "  ") unless content.blank?
+      content.strip unless content.blank?
+      content = nil if content.blank?
+      return content
+    end
+
+    # Strips semantically empty div wrapper elements
+    def strip_wrapper_element(xhtml)
+      return nil if xhtml.nil?
+      return xhtml if xhtml.blank?
+      begin
+        result = xhtml.scan(/<div[^>]*>((.|\n)*)<\/div>/)
+        if result.empty?
+          return xhtml.to_s.strip
+        else
+          return result.first.first.strip
+        end
+      rescue Exception
+        return xhtml.to_s.strip
+      end
+    end
   end
 end

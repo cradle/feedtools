@@ -153,6 +153,7 @@ module FeedTools
       @time_to_live = nil
       @entries = nil
       @live = false
+      @encoding = nil
     end
           
     # Loads the feed specified by the url, pulling the data from the
@@ -587,11 +588,10 @@ module FeedTools
   
     # Sets the feed's data.
     def feed_data=(new_feed_data)
+      for var in self.instance_variables
+        self.instance_variable_set(var, nil)
+      end
       @http_headers = {}
-      @cache_object = nil
-      @url = nil
-      @id = nil
-      @encoding = nil
       @feed_data = new_feed_data
       unless self.cache_object.nil?
         self.cache_object.feed_data = new_feed_data
@@ -650,8 +650,7 @@ module FeedTools
         if @xml_doc.nil?
           begin
             begin
-              @xml_doc = Document.new(self.feed_data_utf_8,
-                :ignore_whitespace_nodes => :all)
+              @xml_doc = Document.new(self.feed_data_utf_8)
             rescue Object
               # Something failed, attempt to repair the xml with htree.
               @xml_doc = HTree.parse(self.feed_data_utf_8).to_rexml
@@ -705,14 +704,14 @@ module FeedTools
   
     # Returns the channel node of the feed.
     def channel_node
-      if @channel_node.nil? && root_node != nil
-        @channel_node = try_xpaths(root_node, [
+      if @channel_node.nil? && self.root_node != nil
+        @channel_node = try_xpaths(self.root_node, [
           "channel",
           "CHANNEL",
           "feedinfo"
         ])
         if @channel_node == nil
-          @channel_node = root_node
+          @channel_node = self.root_node
         end
       end
       return @channel_node
@@ -945,43 +944,12 @@ module FeedTools
           "title",
           "dc:title"
         ])
-        if title_node.nil?
-          return nil
+        @title = process_text_construct(title_node,
+          self.feed_type, self.feed_version)
+        if self.feed_type == "atom" ||
+            FeedTools.configurations[:always_strip_wrapper_elements]
+          @title = strip_wrapper_element(@title)
         end
-        title_type = try_xpaths(title_node, "@type",
-          :select_result_value => true)
-        title_mode = try_xpaths(title_node, "@mode",
-          :select_result_value => true)
-        title_encoding = try_xpaths(title_node, "@encoding",
-          :select_result_value => true)
-        
-        # Note that we're checking for misuse of type, mode and encoding here
-        if title_type == "base64" || title_mode == "base64" ||
-            title_encoding == "base64"
-          @title = Base64.decode64(title_node.inner_xml.strip)
-        elsif title_type == "xhtml" || title_mode == "xhtml" ||
-            title_type == "xml" || title_mode == "xml" ||
-            title_type == "application/xhtml+xml"
-          @title = title_node.inner_xml
-        elsif title_type == "escaped" || title_mode == "escaped"
-          @title = FeedTools.unescape_entities(
-            title_node.inner_xml)
-        else
-          @title = title_node.inner_xml
-          repair_entities = true
-        end
-        unless @title.nil?
-          @title = FeedTools.sanitize_html(@title, :strip)
-          @title = FeedTools.unescape_entities(@title) if repair_entities
-          unless repair_entities
-            @title = FeedTools.tidy_html(@title,
-              :input_encoding => "utf-8",
-              :output_encoding => "utf-8")
-          end
-        end
-        @title.gsub!(/>\n</, "><")
-        @title.gsub!(/\n/, " ")
-        @title.strip!
         @title = nil if @title.blank?
         self.cache_object.title = @title unless self.cache_object.nil?
       end
@@ -1012,40 +980,18 @@ module FeedTools
           "content",
           "xhtml:body",
           "body",
+          "xhtml:div",
+          "div",
           "p:payload",
           "payload",
           "blurb",
           "info"
         ])
-        if subtitle_node.nil?
-          return nil
-        end
-        subtitle_type = try_xpaths(subtitle_node, "@type",
-          :select_result_value => true)
-        subtitle_mode = try_xpaths(subtitle_node, "@mode",
-          :select_result_value => true)
-        subtitle_encoding = try_xpaths(subtitle_node, "@encoding",
-          :select_result_value => true)
-
-        # Note that we're checking for misuse of type, mode and encoding here
-        if !subtitle_encoding.blank?
-          @subtitle =
-            "[Embedded data objects are not currently supported.]"
-        elsif subtitle_node.cdatas.size > 0
-          @subtitle = subtitle_node.cdatas.first.value
-        elsif subtitle_type == "base64" || subtitle_mode == "base64" ||
-            subtitle_encoding == "base64"
-          @subtitle = Base64.decode64(subtitle_node.inner_xml.strip)
-        elsif subtitle_type == "xhtml" || subtitle_mode == "xhtml" ||
-            subtitle_type == "xml" || subtitle_mode == "xml" ||
-            subtitle_type == "application/xhtml+xml"
-          @subtitle = subtitle_node.inner_xml
-        elsif subtitle_type == "escaped" || subtitle_mode == "escaped"
-          @subtitle = FeedTools.unescape_entities(
-            subtitle_node.inner_xml)
-        else
-          @subtitle = subtitle_node.inner_xml
-          repair_entities = true
+        @subtitle = process_text_construct(subtitle_node,
+          self.feed_type, self.feed_version)
+        if self.feed_type == "atom" ||
+            FeedTools.configurations[:always_strip_wrapper_elements]
+          @subtitle = strip_wrapper_element(@subtitle)
         end
         if @subtitle.blank?
           @subtitle = self.itunes_summary
@@ -1053,19 +999,6 @@ module FeedTools
         if @subtitle.blank?
           @subtitle = self.itunes_subtitle
         end
-
-        unless @subtitle.blank?
-          @subtitle = FeedTools.sanitize_html(@subtitle, :strip)
-          @subtitle = FeedTools.unescape_entities(@subtitle) if repair_entities
-          unless repair_entities
-            @subtitle = FeedTools.tidy_html(@subtitle,
-              :input_encoding => "utf-8",
-              :output_encoding => "utf-8")
-          end
-        end
-
-        @subtitle = @subtitle.strip unless @subtitle.nil?
-        @subtitle = nil if @subtitle.blank?
       end
       return @subtitle
     end
@@ -1089,6 +1022,7 @@ module FeedTools
         unless @itunes_summary.blank?
           @itunes_summary = FeedTools.unescape_entities(@itunes_summary)
           @itunes_summary = FeedTools.sanitize_html(@itunes_summary)
+          @itunes_summary.strip!
         else
           @itunes_summary = nil
         end
@@ -1115,6 +1049,7 @@ module FeedTools
         unless @itunes_subtitle.blank?
           @itunes_subtitle = FeedTools.unescape_entities(@itunes_subtitle)
           @itunes_subtitle = FeedTools.sanitize_html(@itunes_subtitle)
+          @itunes_subtitle.strip!
         else
           @itunes_subtitle = nil
         end
@@ -1726,49 +1661,12 @@ module FeedTools
           "dc:rights",
           "rights"
         ])
-        if rights_node.nil?
-          return nil
+        @rights = process_text_construct(rights_node,
+          self.feed_type, self.feed_version)
+        if self.feed_type == "atom" ||
+            FeedTools.configurations[:always_strip_wrapper_elements]
+          @rights = strip_wrapper_element(@rights)
         end
-        rights_type = try_xpaths(rights_node, "@type",
-          :select_result_value => true)
-        rights_mode = try_xpaths(rights_node, "@mode",
-          :select_result_value => true)
-        rights_encoding = try_xpaths(rights_node, "@encoding",
-          :select_result_value => true)
-
-        # Note that we're checking for misuse of type, mode and encoding here
-        if !rights_encoding.blank?
-          @rights =
-            "[Embedded data objects are not currently supported.]"
-        elsif rights_node.cdatas.size > 0
-          @rights = rights_node.cdatas.first.value
-        elsif rights_type == "base64" || rights_mode == "base64" ||
-            rights_encoding == "base64"
-          @rights = Base64.decode64(rights_node.inner_xml.strip)
-        elsif rights_type == "xhtml" || rights_mode == "xhtml" ||
-            rights_type == "xml" || rights_mode == "xml" ||
-            rights_type == "application/xhtml+xml"
-          @rights = rights_node.inner_xml
-        elsif rights_type == "escaped" || rights_mode == "escaped"
-          @rights = FeedTools.unescape_entities(
-            rights_node.inner_xml)
-        else
-          @rights = rights_node.inner_xml
-          repair_entities = true
-        end
-
-        unless @rights.nil?
-          @rights = FeedTools.sanitize_html(@rights, :strip)
-          @rights = FeedTools.unescape_entities(@rights) if repair_entities
-          unless repair_entities
-            @rights = FeedTools.tidy_html(@rights,
-              :input_encoding => "utf-8",
-              :output_encoding => "utf-8")
-          end
-        end
-
-        @rights = @rights.strip unless @rights.nil?
-        @rights = nil if @rights.blank?
       end
       return @rights
     end
@@ -2026,6 +1924,10 @@ module FeedTools
             new_entry = FeedItem.new
             new_entry.feed_data = entry_node.to_s
             new_entry.feed_data_type = self.feed_data_type
+            new_entry.root_node = entry_node
+            if new_entry.root_node.namespace.blank?
+              new_entry.root_node.add_namespace(self.root_node.namespace)
+            end
             @entries << new_entry
           end
         end

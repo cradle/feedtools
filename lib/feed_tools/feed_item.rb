@@ -266,6 +266,33 @@ module FeedTools
       end
       return @root_node
     end
+    
+    # Sets the root node of the feed item.
+    # 
+    # This allows namespace information to be inherited by the feed item
+    # from the feed itself.  When creating individual nodes from scratch,
+    # the <tt>feed_data=</tt> method should be used instead.
+    def root_node=(new_root_node)
+      @root_node = new_root_node
+    end
+    
+    # Returns the feed type of this item
+    def feed_type
+      if @feed_type.nil?
+        parent_feed = self.feed
+        @feed_type = parent_feed.feed_type unless parent_feed.nil?
+      end
+      return @feed_type
+    end
+    
+    # Returns the feed version of this item
+    def feed_version
+      if @feed_version.nil?
+        parent_feed = self.feed
+        @feed_version = parent_feed.feed_version unless parent_feed.nil?
+      end
+      return @feed_version
+    end
 
     # Returns the feed items's unique id
     def id
@@ -297,39 +324,11 @@ module FeedTools
           "title",
           "dc:title"
         ])
-        if title_node.nil?
-          return nil
-        end
-        title_type = try_xpaths(title_node, "@type",
-          :select_result_value => true)
-        title_mode = try_xpaths(title_node, "@mode",
-          :select_result_value => true)
-        title_encoding = try_xpaths(title_node, "@encoding",
-          :select_result_value => true)
-        
-        # Note that we're checking for misuse of type, mode and encoding here
-        if title_type == "base64" || title_mode == "base64" ||
-            title_encoding == "base64"
-          @title = Base64.decode64(title_node.inner_xml.strip)
-        elsif title_type == "xhtml" || title_mode == "xhtml" ||
-            title_type == "xml" || title_mode == "xml" ||
-            title_type == "application/xhtml+xml"
-          @title = title_node.inner_xml
-        elsif title_type == "escaped" || title_mode == "escaped"
-          @title = FeedTools.unescape_entities(
-            title_node.inner_xml)
-        else
-          @title = title_node.inner_xml
-          repair_entities = true
-        end
-        unless @title.nil?
-          @title = FeedTools.sanitize_html(@title, :strip)
-          @title = FeedTools.unescape_entities(@title) if repair_entities
-          unless repair_entities
-            @title = FeedTools.tidy_html(@title,
-              :input_encoding => "utf-8",
-              :output_encoding => "utf-8")
-          end
+        @title = process_text_construct(title_node,
+          self.feed_type, self.feed_version)
+        if self.feed_type == "atom" ||
+            FeedTools.configurations[:always_strip_wrapper_elements]
+          @title = strip_wrapper_element(@title)
         end
         if !@title.blank? && FeedTools.configurations[:strip_comment_count]
           # Some blogging tools include the number of comments in a post
@@ -341,9 +340,6 @@ module FeedTools
           # unstripped title, just use find_node("title/text()").to_s
           @title = @title.strip.gsub(/\[\d*\]$/, "").strip
         end
-        @title.gsub!(/>\n</, "><")
-        @title.gsub!(/\n/, " ")
-        @title.strip!
         @title = nil if @title.blank?
       end
       return @title
@@ -367,6 +363,8 @@ module FeedTools
           "fullitem",
           "xhtml:body",
           "body",
+          "xhtml:div",
+          "div",
           "encoded",
           "p:payload",
           "payload",
@@ -381,35 +379,11 @@ module FeedTools
           "blurb",
           "info"
         ])
-        if content_node.nil?
-          return nil
-        end
-        content_type = try_xpaths(content_node, "@type",
-          :select_result_value => true)
-        content_mode = try_xpaths(content_node, "@mode",
-          :select_result_value => true)
-        content_encoding = try_xpaths(content_node, "@encoding",
-          :select_result_value => true)
-
-        # Note that we're checking for misuse of type, mode and encoding here
-        if !content_encoding.blank?
-          @content =
-            "[Embedded data objects are not currently supported.]"
-        elsif content_node.cdatas.size > 0
-          @content = content_node.cdatas.first.value
-        elsif content_type == "base64" || content_mode == "base64" ||
-            content_encoding == "base64"
-          @content = Base64.decode64(content_node.inner_xml.strip)
-        elsif content_type == "xhtml" || content_mode == "xhtml" ||
-            content_type == "xml" || content_mode == "xml" ||
-            content_type == "application/xhtml+xml"
-          @content = content_node.inner_xml
-        elsif content_type == "escaped" || content_mode == "escaped"
-          @content = FeedTools.unescape_entities(
-            content_node.inner_xml)
-        else
-          @content = content_node.inner_xml
-          repair_entities = true
+        @content = process_text_construct(content_node,
+          self.feed_type, self.feed_version)
+        if self.feed_type == "atom" ||
+            FeedTools.configurations[:always_strip_wrapper_elements]
+          @content = strip_wrapper_element(@content)
         end
         if @content.blank?
           @content = self.itunes_summary
@@ -417,19 +391,6 @@ module FeedTools
         if @content.blank?
           @content = self.itunes_subtitle
         end
-
-        unless @content.blank?
-          @content = FeedTools.sanitize_html(@content, :strip)
-          @content = FeedTools.unescape_entities(@content) if repair_entities
-          unless repair_entities
-            @content = FeedTools.tidy_html(@content,
-              :input_encoding => "utf-8",
-              :output_encoding => "utf-8")
-          end
-        end
-
-        @content = @content.strip unless @content.nil?
-        @content = nil if @content.blank?
       end
       return @content
     end
@@ -456,6 +417,8 @@ module FeedTools
           "fullitem",
           "xhtml:body",
           "body",
+          "xhtml:div",
+          "div",
           "p:payload",
           "payload",
           "content:encoded",
@@ -466,35 +429,11 @@ module FeedTools
           "content",
           "info"
         ])
-        if summary_node.nil?
-          return nil
-        end
-        summary_type = try_xpaths(summary_node, "@type",
-          :select_result_value => true)
-        summary_mode = try_xpaths(summary_node, "@mode",
-          :select_result_value => true)
-        summary_encoding = try_xpaths(summary_node, "@encoding",
-          :select_result_value => true)
-
-        # Note that we're checking for misuse of type, mode and encoding here
-        if !summary_encoding.blank?
-          @summary =
-            "[Embedded data objects are not currently supported.]"
-        elsif summary_node.cdatas.size > 0
-          @summary = summary_node.cdatas.first.value
-        elsif summary_type == "base64" || summary_mode == "base64" ||
-            summary_encoding == "base64"
-          @summary = Base64.decode64(summary_node.inner_xml.strip)
-        elsif summary_type == "xhtml" || summary_mode == "xhtml" ||
-            summary_type == "xml" || summary_mode == "xml" ||
-            summary_type == "application/xhtml+xml"
-          @summary = summary_node.inner_xml
-        elsif summary_type == "escaped" || summary_mode == "escaped"
-          @summary = FeedTools.unescape_entities(
-            summary_node.inner_xml)
-        else
-          @summary = summary_node.inner_xml
-          repair_entities = true
+        @summary = process_text_construct(summary_node,
+          self.feed_type, self.feed_version)
+        if self.feed_type == "atom" ||
+            FeedTools.configurations[:always_strip_wrapper_elements]
+          @summary = strip_wrapper_element(@summary)
         end
         if @summary.blank?
           @summary = self.itunes_summary
@@ -502,19 +441,6 @@ module FeedTools
         if @summary.blank?
           @summary = self.itunes_subtitle
         end
-
-        unless @summary.blank?
-          @summary = FeedTools.sanitize_html(@summary, :strip)
-          @summary = FeedTools.unescape_entities(@summary) if repair_entities
-          unless repair_entities
-            @summary = FeedTools.tidy_html(@summary,
-              :input_encoding => "utf-8",
-              :output_encoding => "utf-8")
-          end
-        end
-
-        @summary = @summary.strip unless @summary.nil?
-        @summary = nil if @summary.blank?
       end
       return @summary
     end
@@ -533,6 +459,7 @@ module FeedTools
         unless @itunes_summary.blank?
           @itunes_summary = FeedTools.unescape_entities(@itunes_summary)
           @itunes_summary = FeedTools.sanitize_html(@itunes_summary)
+          @itunes_summary.strip!
         else
           @itunes_summary = nil
         end
@@ -554,6 +481,7 @@ module FeedTools
         unless @itunes_subtitle.blank?
           @itunes_subtitle = FeedTools.unescape_entities(@itunes_subtitle)
           @itunes_subtitle = FeedTools.sanitize_html(@itunes_subtitle)
+          @itunes_subtitle.strip!
         else
           @itunes_subtitle = nil
         end
@@ -825,49 +753,12 @@ module FeedTools
           "dc:rights",
           "rights"
         ])
-        if rights_node.nil?
-          return nil
+        @rights = process_text_construct(rights_node,
+          self.feed_type, self.feed_version)
+        if self.feed_type == "atom" ||
+            FeedTools.configurations[:always_strip_wrapper_elements]
+          @rights = strip_wrapper_element(@rights)
         end
-        rights_type = try_xpaths(rights_node, "@type",
-          :select_result_value => true)
-        rights_mode = try_xpaths(rights_node, "@mode",
-          :select_result_value => true)
-        rights_encoding = try_xpaths(rights_node, "@encoding",
-          :select_result_value => true)
-
-        # Note that we're checking for misuse of type, mode and encoding here
-        if !rights_encoding.blank?
-          @rights =
-            "[Embedded data objects are not currently supported.]"
-        elsif rights_node.cdatas.size > 0
-          @rights = rights_node.cdatas.first.value
-        elsif rights_type == "base64" || rights_mode == "base64" ||
-            rights_encoding == "base64"
-          @rights = Base64.decode64(rights_node.inner_xml.strip)
-        elsif rights_type == "xhtml" || rights_mode == "xhtml" ||
-            rights_type == "xml" || rights_mode == "xml" ||
-            rights_type == "application/xhtml+xml"
-          @rights = rights_node.inner_xml
-        elsif rights_type == "escaped" || rights_mode == "escaped"
-          @rights = FeedTools.unescape_entities(
-            rights_node.inner_xml)
-        else
-          @rights = rights_node.inner_xml
-          repair_entities = true
-        end
-
-        unless @rights.nil?
-          @rights = FeedTools.sanitize_html(@rights, :strip)
-          @rights = FeedTools.unescape_entities(@rights) if repair_entities
-          unless repair_entities
-            @rights = FeedTools.tidy_html(@rights,
-              :input_encoding => "utf-8",
-              :output_encoding => "utf-8")
-          end
-        end
-
-        @rights = @rights.strip unless @rights.nil?
-        @rights = nil if @rights.blank?
       end
       return @rights
     end
