@@ -287,12 +287,14 @@ module FeedTools
       return nil if xhtml.nil?
       return xhtml if xhtml.blank?
       begin
-        result = xhtml.scan(/<div[^>]*>((.|\n)*)<\/div>/)
-        if result.empty?
-          return xhtml.to_s.strip
-        else
-          return result.first.first.strip
+        doc = REXML::Document.new(xhtml.to_s.strip)
+        if doc.children.size == 1
+          child = doc.children[0]
+          if child.name.downcase == "div"
+            return child.inner_xml.strip
+          end
         end
+        return xhtml.to_s.strip
       rescue Exception
         return xhtml.to_s.strip
       end
