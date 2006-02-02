@@ -31,11 +31,13 @@ class AtomTest < Test::Unit::TestCase
       assert_equal("Example Atom", feed.title)
     }
     with_feed(:from_file => 'wellformed/atom/feed_title_base64.xml') { |feed|
-      assert_equal("Example <b>Atom</b>", feed.title)
+      assert_equal("Example &lt;b&gt;Atom&lt;/b&gt;", feed.title)
     }
     with_feed(:from_file =>
         'wellformed/atom/feed_title_base64_2.xml') { |feed|
-      assert_equal("<p>History of the &lt;blink&gt; tag</p>", feed.title)
+      assert_equal(
+        "&lt;p&gt;History of the &amp;lt;blink&amp;gt; tag&lt;/p&gt;",
+        feed.title)
     }
   end
   
@@ -99,11 +101,13 @@ class AtomTest < Test::Unit::TestCase
   def test_feed_copyright
     with_feed(:from_file =>
         'wellformed/atom/feed_copyright_base64.xml') { |feed|
-      assert_equal("Example <b>Atom</b>", feed.copyright)
+      assert_equal("Example &lt;b&gt;Atom&lt;/b&gt;", feed.copyright)
     }
     with_feed(:from_file =>
         'wellformed/atom/feed_copyright_base64_2.xml') { |feed|
-      assert_equal("<p>History of the &lt;blink&gt; tag</p>", feed.copyright)
+      assert_equal(
+        "&lt;p&gt;History of the &amp;lt;blink&amp;gt; tag&lt;/p&gt;",
+        feed.copyright)
     }
   end
   
@@ -153,5 +157,186 @@ class AtomTest < Test::Unit::TestCase
       assert_equal("Full Content", feed.items[0].content)
     }
   end
+  
+  # Make sure it knows a title from a hole in the ground
+  def test_all_feed_titles
+    with_feed(:from_data => <<-FEED
+      <?xml version="1.0" encoding="iso-8859-1"?>
+      <feed version="1.0" xmlns="http://www.w3.org/2005/Atom">
+        <title><![CDATA[&lt;title>]]></title>
+        <entry>
+          <title><![CDATA[&lt;title>]]></title>
+        </entry>
+      </feed>
+    FEED
+    ) { |feed|
+      assert_equal("&amp;lt;title&gt;",
+        feed.title, "Text CDATA failed")
+      assert_equal(1, feed.items.size)
+      assert_equal("&amp;lt;title&gt;",
+        feed.items[0].title, "Text CDATA failed")
+    }
+    with_feed(:from_data => <<-FEED
+      <?xml version="1.0" encoding="iso-8859-1"?>
+      <feed version="1.0" xmlns="http://www.w3.org/2005/Atom">
+        <title type="html"><![CDATA[&lt;title>]]></title>
+        <entry>
+          <title type="html"><![CDATA[&lt;title>]]></title>
+        </entry>
+      </feed>
+    FEED
+    ) { |feed|
+      assert_equal("&lt;title&gt;",
+        feed.title, "HTML CDATA failed")
+      assert_equal(1, feed.items.size)
+      assert_equal("&lt;title&gt;",
+        feed.items[0].title, "HTML CDATA failed")
+    }
+    with_feed(:from_data => <<-FEED
+      <?xml version="1.0" encoding="iso-8859-1"?>
+      <feed version="1.0" xmlns="http://www.w3.org/2005/Atom">
+        <title type="html">&amp;lt;title></title>
+        <entry>
+          <title type="html">&amp;lt;title></title>
+        </entry>
+      </feed>
+    FEED
+    ) { |feed|
+      assert_equal("&lt;title>",
+        feed.title, "HTML entity failed")
+      assert_equal(1, feed.items.size)
+      assert_equal("&lt;title>",
+        feed.items[0].title, "HTML entity failed")
+    }
+    with_feed(:from_data => <<-FEED
+      <?xml version="1.0" encoding="iso-8859-1"?>
+      <feed version="1.0" xmlns="http://www.w3.org/2005/Atom">
+        <title type="html">&#38;lt;title></title>
+        <entry>
+          <title type="html">&#38;lt;title></title>
+        </entry>
+      </feed>
+    FEED
+    ) { |feed|
+      assert_equal("&lt;title>",
+        feed.title, "HTML NCR failed")
+      assert_equal(1, feed.items.size)
+      assert_equal("&lt;title>",
+        feed.items[0].title, "HTML NCR failed")
+    }
+    with_feed(:from_data => <<-FEED
+      <?xml version="1.0" encoding="iso-8859-1"?>
+      <feed version="1.0" xmlns="http://www.w3.org/2005/Atom">
+        <title type="text"><![CDATA[<title>]]></title>
+        <entry>
+          <title type="text"><![CDATA[<title>]]></title>
+        </entry>
+      </feed>
+    FEED
+    ) { |feed|
+      assert_equal("&lt;title&gt;",
+        feed.title, "Text CDATA failed")
+      assert_equal(1, feed.items.size)
+      assert_equal("&lt;title&gt;",
+        feed.items[0].title, "Text CDATA failed")
+    }
+    with_feed(:from_data => <<-FEED
+      <?xml version="1.0" encoding="iso-8859-1"?>
+      <feed version="1.0" xmlns="http://www.w3.org/2005/Atom">
+        <title type="text">&lt;title></title>
+        <entry>
+          <title type="text">&lt;title></title>
+        </entry>
+      </feed>
+    FEED
+    ) { |feed|
+      assert_equal("&lt;title&gt;",
+        feed.title, "Text entity failed")
+      assert_equal(1, feed.items.size)
+      assert_equal("&lt;title&gt;",
+        feed.items[0].title, "Text entity failed")
+    }
+    with_feed(:from_data => <<-FEED
+      <?xml version="1.0" encoding="iso-8859-1"?>
+      <feed version="1.0" xmlns="http://www.w3.org/2005/Atom">
+        <title type="text">&#60;title></title>
+        <entry>
+          <title type="text">&#60;title></title>
+        </entry>
+      </feed>
+    FEED
+    ) { |feed|
+      assert_equal("&lt;title&gt;",
+        feed.title, "Text NCR failed")
+      assert_equal(1, feed.items.size)
+      assert_equal("&lt;title&gt;",
+        feed.items[0].title, "Text NCR failed")
+    }
+    with_feed(:from_data => <<-FEED
+      <?xml version="1.0" encoding="iso-8859-1"?>
+      <feed version="1.0" xmlns="http://www.w3.org/2005/Atom">
+        <title type="xhtml">
+          <div xmlns="http://www.w3.org/1999/xhtml">&lt;title></div>
+        </title>
+        <entry>
+          <title type="xhtml">
+            <div xmlns="http://www.w3.org/1999/xhtml">&lt;title></div>
+          </title>
+        </entry>
+      </feed>
+    FEED
+    ) { |feed|
+      assert_equal(
+        '&lt;title&gt;',
+        feed.title, "XHTML entity failed")
+      assert_equal(1, feed.items.size)
+      assert_equal(
+        '&lt;title&gt;',
+        feed.items[0].title, "XHTML entity failed")
+    }
+    with_feed(:from_data => <<-FEED
+      <?xml version="1.0" encoding="iso-8859-1"?>
+      <feed version="1.0" xmlns="http://www.w3.org/2005/Atom">
+        <title type="xhtml">
+          <div xmlns="http://www.w3.org/1999/xhtml">&#60;title></div>
+        </title>
+        <entry>
+          <title type="xhtml">
+            <div xmlns="http://www.w3.org/1999/xhtml">&#60;title></div>
+          </title>
+        </entry>
+      </feed>
+    FEED
+    ) { |feed|
+      assert_equal(
+        '&#60;title&gt;',
+        feed.title, "XHTML NCR failed")
+      assert_equal(1, feed.items.size)
+      assert_equal(
+        '&#60;title&gt;',
+        feed.items[0].title, "XHTML NCR failed")
+    }
+    with_feed(:from_data => <<-FEED
+      <?xml version="1.0" encoding="iso-8859-1"?>
+      <feed version="1.0" xmlns="http://www.w3.org/2005/Atom">
+        <title type="xhtml" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+          <xhtml:div>&lt;title></xhtml:div>
+        </title>
+        <entry>
+          <title type="xhtml" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+            <xhtml:div>&lt;title></xhtml:div>
+          </title>
+        </entry>
+      </feed>
+    FEED
+    ) { |feed|
+      assert_equal(
+        '&lt;title&gt;',
+        feed.title, "XHTML NCR failed")
+      assert_equal(1, feed.items.size)
+      assert_equal(
+        '&lt;title&gt;',
+        feed.items[0].title, "XHTML NCR failed")
+    }
+  end
 end
-

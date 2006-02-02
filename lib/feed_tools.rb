@@ -175,9 +175,12 @@ module FeedTools
   
   def FeedTools.load_configurations
     if @configurations.blank?
+      # TODO: Load this from a config file.
       config_hash = {}
       @configurations = {
         :feed_cache => nil,
+        :proxy_address => nil,
+        :proxy_port => nil,
         :user_agent => "FeedTools/#{FEED_TOOLS_VERSION} " + 
           "+http://www.sporkmonger.com/projects/feedtools/",
         :generator_name => "FeedTools/#{FEED_TOOLS_VERSION}",

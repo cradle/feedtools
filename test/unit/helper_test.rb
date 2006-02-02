@@ -151,4 +151,70 @@ class HelperTest < Test::Unit::TestCase
       "http://rss.slashdot.org/Slashdot/slashdot"
     ])
   end
+  
+  def test_extract_xhtml
+    FeedTools.configurations[:tidy_enabled] = false
+    
+    xml = <<-XML
+      <content>
+        <div xmlns='http://www.w3.org/1999/xhtml'><em>Testing.</em></div>
+      </content>
+    XML
+    doc = REXML::Document.new(xml)
+    assert_equal(
+      "<div><em>Testing.</em></div>",
+      extract_xhtml(doc.root))
+    xml = <<-XML
+      <content xmlns:xhtml='http://www.w3.org/1999/xhtml'>
+        <xhtml:div><xhtml:em>Testing.</xhtml:em></xhtml:div>
+      </content>
+    XML
+    doc = REXML::Document.new(xml)
+    assert_equal(
+      "<div><em>Testing.</em></div>",
+      extract_xhtml(doc.root))
+    xml = <<-XML
+      <content type="xhtml" xmlns:xhtml='http://www.w3.org/1999/xhtml'>
+        <xhtml:div xmlns='http://hsivonen.iki.fi/FooML'>
+			    <xhtml:ul>
+            <xhtml:li>XHTML List Item</xhtml:li>
+          </xhtml:ul>
+          <ul>
+            <li>FooML List Item</li>
+          </ul>
+        </xhtml:div>
+		  </content>
+    XML
+    doc = REXML::Document.new(xml)
+    xhtml = extract_xhtml(doc.root)
+    assert((xhtml =~ /<div>/) && (xhtml =~ /<\/div>/),
+      "XHTML divs were not normalized properly.")
+    assert((xhtml =~ /hsivonen\.iki\.fi/),
+      "FooML namespace was not preserved.")
+    assert((xhtml =~ /<ul xmlns=/),
+      "Namespace was not placed correctly.")
+
+    FeedTools.configurations[:tidy_enabled] = true
+
+    xml = <<-XML
+      <content type="xhtml" xmlns:xhtml='http://www.w3.org/1999/xhtml'>
+        <xhtml:div xmlns='http://hsivonen.iki.fi/FooML'>
+			    <xhtml:ul>
+            <xhtml:li>XHTML List Item</xhtml:li>
+          </xhtml:ul>
+          <ul>
+            <li>FooML List Item</li>
+          </ul>
+        </xhtml:div>
+		  </content>
+    XML
+    doc = REXML::Document.new(xml)
+    xhtml = extract_xhtml(doc.root)
+    assert((xhtml =~ /<div>/) && (xhtml =~ /<\/div>/),
+      "XHTML divs were not normalized properly.")
+    assert((xhtml =~ /hsivonen\.iki\.fi/),
+      "FooML namespace was not preserved.")
+    assert((xhtml =~ /<ul xmlns=/),
+      "Namespace was not placed correctly.")
+  end
 end

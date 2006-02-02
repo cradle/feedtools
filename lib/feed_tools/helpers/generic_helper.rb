@@ -111,36 +111,6 @@ module FeedTools
           return result
         end
       end
-      for xpath in xpath_list
-        if xpath =~ /^\w+$/
-          for child in element.children
-            if child.class == REXML::Element
-              if child.name.downcase == xpath.downcase
-                result = child
-              end
-            end
-          end
-          if options[:select_result_value] && !result.nil?
-            if result.respond_to?(:value)
-              result = result.value
-            else
-              result = result.to_s
-            end
-          end
-          blank_result = false
-          if block_given?
-            blank_result = yield(result)
-          else
-            blank_result = result.to_s.blank?
-          end
-          if !blank_result
-            if result.respond_to? :strip
-              result.strip!
-            end
-            return result
-          end
-        end
-      end
       return nil
     end
     
@@ -203,6 +173,7 @@ module FeedTools
       rexml_node_dup = rexml_node.deep_clone
       normalize_namespaced_xhtml = lambda do |node, node_dup|
         if node.kind_of? REXML::Element
+          node_namespace = node.namespace
           # Massive hack, relies on REXML not changing
           for index in 0...node.attributes.values.size
             attribute = node.attributes.values[index]
@@ -211,25 +182,18 @@ module FeedTools
               attribute_dup.instance_variable_set(
                 "@expanded_name", attribute.name)
             end
-            if node.namespace == FEED_TOOLS_NAMESPACES['xhtml']
-              if attribute.name == 'xmlns' &&
-                  attribute.value != FEED_TOOLS_NAMESPACES['xhtml']
+            if node_namespace == FEED_TOOLS_NAMESPACES['xhtml']
+              if attribute.name == 'xmlns'
                 node_dup.attributes.delete('xmlns')
               end
-
-              if attribute.name == 'xmlns' &&
-                  attribute.value == FEED_TOOLS_NAMESPACES['xhtml']
-                node_dup.attributes.delete('xmlns')
-              end
-
             end
           end
-          if node.namespace == FEED_TOOLS_NAMESPACES['xhtml']
+          if node_namespace == FEED_TOOLS_NAMESPACES['xhtml']
             node_dup.instance_variable_set("@expanded_name", node.name)
           end
-          if !node.namespace.blank? && node.prefix.blank?
+          if !node_namespace.blank? && node.prefix.blank?
             if node.namespace != FEED_TOOLS_NAMESPACES['xhtml']
-              node_dup.add_namespace(node.namespace)
+              node_dup.add_namespace(node_namespace)
             end
           end
         end

@@ -28,7 +28,7 @@ class AmpTest < Test::Unit::TestCase
   
   def test_amp_03
     with_feed(:from_file => 'wellformed/amp/amp03.xml') { |feed|
-      assert_equal("&", feed.entries.first.title)
+      assert_equal("&amp;", feed.entries.first.title)
     }
   end
   
@@ -52,7 +52,7 @@ class AmpTest < Test::Unit::TestCase
 
   def test_amp_07
     with_feed(:from_file => 'wellformed/amp/amp07.xml') { |feed|
-      assert_equal("&", feed.entries.first.title)
+      assert_equal("&amp;", feed.entries.first.title)
     }
   end
 
@@ -76,7 +76,7 @@ class AmpTest < Test::Unit::TestCase
 
   def test_amp_11
     with_feed(:from_file => 'wellformed/amp/amp11.xml') { |feed|
-      assert_equal("&", feed.entries.first.title)
+      assert_equal("&amp;", feed.entries.first.title)
     }
   end
 
@@ -316,7 +316,7 @@ class AmpTest < Test::Unit::TestCase
 
   def test_amp_51
     with_feed(:from_file => 'wellformed/amp/amp51.xml') { |feed|
-      assert_equal("&", feed.entries.first.title)
+      assert_equal("&amp;", feed.entries.first.title)
     }
   end
 
@@ -364,37 +364,37 @@ class AmpTest < Test::Unit::TestCase
 
   def test_amp_59
     with_feed(:from_file => 'wellformed/amp/amp59.xml') { |feed|
-      assert_equal("<div><b>&amp;</b></div>", feed.entries.first.title)
+      assert_equal("<b>&amp;</b>", feed.entries.first.title)
     }
   end
 
   def test_amp_60
     with_feed(:from_file => 'wellformed/amp/amp60.xml') { |feed|
-      assert_equal("<div><b>&amp;</b></div>", feed.entries.first.title)
+      assert_equal("<b>&amp;</b>", feed.entries.first.title)
     }
   end
 
   def test_amp_61
     with_feed(:from_file => 'wellformed/amp/amp61.xml') { |feed|
-      assert_equal("<div><b>&amp;</b></div>", feed.entries.first.title)
+      assert_equal("<b>&amp;</b>", feed.entries.first.title)
     }
   end
 
   def test_amp_62
     with_feed(:from_file => 'wellformed/amp/amp62.xml') { |feed|
-      assert_equal("<div><strong>&amp;</strong></div>", feed.entries.first.title)
+      assert_equal("<strong>&amp;</strong>", feed.entries.first.title)
     }
   end
 
   def test_amp_63
     with_feed(:from_file => 'wellformed/amp/amp63.xml') { |feed|
-      assert_equal("<div><strong>&amp;</strong></div>", feed.entries.first.title)
+      assert_equal("<strong>&amp;</strong>", feed.entries.first.title)
     }
   end
 
   def test_amp_64
     with_feed(:from_file => 'wellformed/amp/amp64.xml') { |feed|
-      assert_equal("<div><strong>&amp;</strong></div>", feed.entries.first.title)
+      assert_equal("<strong>&amp;</strong>", feed.entries.first.title)
     }
   end
   
@@ -410,10 +410,14 @@ class AmpTest < Test::Unit::TestCase
       </feed>
     FEED
     ) { |feed|
-      assert_equal("<strong>1 &amp; 2 & 3</strong>", feed.title)
-      assert_equal("<strong>1 &amp; 2 & 3</strong>", feed.tagline)
-      assert_equal("<strong>1 &amp; 2 & 3</strong>", feed.entries.first.title)
-      assert_equal("<strong>1 &amp; 2 & 3</strong>", feed.entries.first.content)
+      assert_equal("&lt;strong&gt;1 &amp;amp; 2 &amp; 3&lt;/strong&gt;",
+        feed.title)
+      assert_equal("&lt;strong&gt;1 &amp;amp; 2 &amp; 3&lt;/strong&gt;",
+        feed.tagline)
+      assert_equal("&lt;strong&gt;1 &amp;amp; 2 &amp; 3&lt;/strong&gt;",
+        feed.entries.first.title)
+      assert_equal("&lt;strong&gt;1 &amp;amp; 2 &amp; 3&lt;/strong&gt;",
+        feed.entries.first.content)
     }
   end
 
@@ -440,7 +444,7 @@ class AmpTest < Test::Unit::TestCase
     assert_equal(true, FeedTools.tidy_enabled?,
       "Could not enable tidyhtml, library may be missing.")
     with_feed(:from_file => 'wellformed/amp/amp03.xml') { |feed|
-      assert_equal("&", feed.entries.first.title)
+      assert_equal("&amp;", feed.entries.first.title)
     }
   end
   
@@ -476,7 +480,7 @@ class AmpTest < Test::Unit::TestCase
     assert_equal(true, FeedTools.tidy_enabled?,
       "Could not enable tidyhtml, library may be missing.")
     with_feed(:from_file => 'wellformed/amp/amp07.xml') { |feed|
-      assert_equal("&", feed.entries.first.title)
+      assert_equal("&amp;", feed.entries.first.title)
     }
   end
 
@@ -512,7 +516,7 @@ class AmpTest < Test::Unit::TestCase
     assert_equal(true, FeedTools.tidy_enabled?,
       "Could not enable tidyhtml, library may be missing.")
     with_feed(:from_file => 'wellformed/amp/amp11.xml') { |feed|
-      assert_equal("&", feed.entries.first.title)
+      assert_equal("&amp;", feed.entries.first.title)
     }
   end
 
@@ -872,7 +876,7 @@ class AmpTest < Test::Unit::TestCase
     assert_equal(true, FeedTools.tidy_enabled?,
       "Could not enable tidyhtml, library may be missing.")
     with_feed(:from_file => 'wellformed/amp/amp51.xml') { |feed|
-      assert_equal("&", feed.entries.first.title)
+      assert_equal("&amp;", feed.entries.first.title)
     }
   end
 
@@ -944,7 +948,7 @@ class AmpTest < Test::Unit::TestCase
     assert_equal(true, FeedTools.tidy_enabled?,
       "Could not enable tidyhtml, library may be missing.")
     with_feed(:from_file => 'wellformed/amp/amp59.xml') { |feed|
-      assert_equal("<div><strong>&amp;</strong></div>", feed.entries.first.title)
+      assert_equal("<strong>&amp;</strong>", feed.entries.first.title)
     }
   end
 
@@ -953,7 +957,7 @@ class AmpTest < Test::Unit::TestCase
     assert_equal(true, FeedTools.tidy_enabled?,
       "Could not enable tidyhtml, library may be missing.")
     with_feed(:from_file => 'wellformed/amp/amp60.xml') { |feed|
-      assert_equal("<div><strong>&amp;</strong></div>", feed.entries.first.title)
+      assert_equal("<strong>&amp;</strong>", feed.entries.first.title)
     }
   end
 
@@ -962,7 +966,7 @@ class AmpTest < Test::Unit::TestCase
     assert_equal(true, FeedTools.tidy_enabled?,
       "Could not enable tidyhtml, library may be missing.")
     with_feed(:from_file => 'wellformed/amp/amp61.xml') { |feed|
-      assert_equal("<div><strong>&amp;</strong></div>", feed.entries.first.title)
+      assert_equal("<strong>&amp;</strong>", feed.entries.first.title)
     }
   end
 
@@ -971,7 +975,7 @@ class AmpTest < Test::Unit::TestCase
     assert_equal(true, FeedTools.tidy_enabled?,
       "Could not enable tidyhtml, library may be missing.")
     with_feed(:from_file => 'wellformed/amp/amp62.xml') { |feed|
-      assert_equal("<div><strong>&amp;</strong></div>", feed.entries.first.title)
+      assert_equal("<strong>&amp;</strong>", feed.entries.first.title)
     }
   end
 
@@ -980,7 +984,7 @@ class AmpTest < Test::Unit::TestCase
     assert_equal(true, FeedTools.tidy_enabled?,
       "Could not enable tidyhtml, library may be missing.")
     with_feed(:from_file => 'wellformed/amp/amp63.xml') { |feed|
-      assert_equal("<div><strong>&amp;</strong></div>", feed.entries.first.title)
+      assert_equal("<strong>&amp;</strong>", feed.entries.first.title)
     }
   end
 
@@ -989,7 +993,7 @@ class AmpTest < Test::Unit::TestCase
     assert_equal(true, FeedTools.tidy_enabled?,
       "Could not enable tidyhtml, library may be missing.")
     with_feed(:from_file => 'wellformed/amp/amp64.xml') { |feed|
-      assert_equal("<div><strong>&amp;</strong></div>", feed.entries.first.title)
+      assert_equal("<strong>&amp;</strong>", feed.entries.first.title)
     }
   end
   
@@ -1008,10 +1012,14 @@ class AmpTest < Test::Unit::TestCase
       </feed>
     FEED
     ) { |feed|
-      assert_equal("<strong>1 &amp; 2 & 3</strong>", feed.title)
-      assert_equal("<strong>1 &amp; 2 & 3</strong>", feed.tagline)
-      assert_equal("<strong>1 &amp; 2 & 3</strong>", feed.entries.first.title)
-      assert_equal("<strong>1 &amp; 2 & 3</strong>", feed.entries.first.content)
+      assert_equal("&lt;strong&gt;1 &amp;amp; 2 &amp; 3&lt;/strong&gt;",
+        feed.title)
+      assert_equal("&lt;strong&gt;1 &amp;amp; 2 &amp; 3&lt;/strong&gt;",
+        feed.tagline)
+      assert_equal("&lt;strong&gt;1 &amp;amp; 2 &amp; 3&lt;/strong&gt;",
+        feed.entries.first.title)
+      assert_equal("&lt;strong&gt;1 &amp;amp; 2 &amp; 3&lt;/strong&gt;",
+        feed.entries.first.content)
     }
   end
 end

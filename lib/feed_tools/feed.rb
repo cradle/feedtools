@@ -273,8 +273,11 @@ module FeedTools
           end
           
           begin
-            # TODO: Proxy host and proxy port would go here if implemented
-            http = Net::HTTP.new(feed_uri.host, (feed_uri.port or 80))
+            proxy_address = (FeedTools.configurations[:proxy_address] || nil)
+            proxy_port = (FeedTools.configurations[:proxy_port].to_i || nil)
+
+            http = Net::HTTP::Proxy(proxy_address, proxy_port).new(
+              feed_uri.host, (feed_uri.port or 80))
             http.start do
               final_uri = feed_uri.path 
               final_uri += ('?' + feed_uri.query) if feed_uri.query

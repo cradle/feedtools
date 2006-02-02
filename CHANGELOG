@@ -1,6 +1,8 @@
 == FeedTools 0.2.23
+ * now knows a title from a hole in the ground
  * feed cache is set to nil by default now
  * both summary and content elements are generated now
+ * now supports proxies
  * fixed bug with feed merging referencing a method that was refactored
  * no longer dies if uuidtools gem is missing but the UUID class is defined
  * updated timestamp handling and generation
@@ -8,6 +10,8 @@
  * fixed itunes subtitle/summary
  * fixed entry assignment bug
  * added support for the payload module
+ * added support for xhtml:div elements
+ * now correctly strips out wrapper div elements from text constructs
 == FeedTools 0.2.22
  * fixed another atom generation error
 == FeedTools 0.2.21
