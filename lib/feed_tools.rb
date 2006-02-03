@@ -193,6 +193,7 @@ module FeedTools
         :timestamp_estimation_enabled => true,
         :url_normalization_enabled => true,
         :strip_comment_count => false,
+        :tab_spaces => 2,
         :max_ttl => 3.days.to_s,
         :output_encoding => "utf-8"
       }.merge(config_hash)
@@ -555,16 +556,20 @@ module FeedTools
       if (html.strip =~ /<\?xml(.|\n)*\?>/) != nil
         is_fragment = false
       end
+      
+      # Tidy sucks?
+      # TODO: find the correct set of tidy options to set so
+      # that *ugly* hacks like this aren't necessary.
+      html = html.gsub(/\302\240/, "\240")
+      
       tidy_html = Tidy.open(:show_warnings=>false) do |tidy|
         tidy.options.output_xml = true
-        tidy.options.numeric_entities = true
         tidy.options.markup = true
         tidy.options.indent = true
         tidy.options.wrap = 0
         tidy.options.logical_emphasis = true
         tidy.options.input_encoding = options[:input_encoding]
         tidy.options.output_encoding = options[:output_encoding]
-        tidy.options.ascii_chars = false
         tidy.options.doctype = "omit"
         xml = tidy.clean(html)
         xml

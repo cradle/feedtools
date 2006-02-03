@@ -11,6 +11,7 @@
  * fixed entry assignment bug
  * added support for the payload module
  * added support for xhtml:div elements
+ * dc:date now preempts pubDate
  * now correctly strips out wrapper div elements from text constructs
 == FeedTools 0.2.22
  * fixed another atom generation error

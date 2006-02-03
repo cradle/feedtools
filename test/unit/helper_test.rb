@@ -137,6 +137,16 @@ class HelperTest < Test::Unit::TestCase
       illegal_pre_after_tidy = FeedTools.tidy_html(illegal_pre)
       assert_not_equal(nil, illegal_pre_after_tidy =~ /class HTTPIO &lt; HTTP/,
         "Tidy failed to clean up illegal chars in <pre> block.")
+      
+      unescaped_utf8_characters = <<-EOF
+        \302\240
+      EOF
+      unescaped_utf8_characters_after_tidy =
+        FeedTools.tidy_html(unescaped_utf8_characters)
+      assert_not_equal("&#194;&#160;", unescaped_utf8_characters_after_tidy,
+        "Tidy failed to escape the unicode characters correctly.")
+      assert_not_equal("&Acirc;&nbsp;", unescaped_utf8_characters_after_tidy,
+        "Tidy failed to escape the unicode characters correctly.")
     end
     FeedTools.configurations[:tidy_enabled] = false
   end

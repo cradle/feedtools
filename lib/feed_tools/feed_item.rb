@@ -1432,8 +1432,8 @@ module FeedTools
           "atom03:published/text()",
           "atom:published/text()",
           "published/text()",
-          "pubDate/text()",
           "dc:date/text()",
+          "pubDate/text()",
           "date/text()"
         ], :select_result_value => true)
         begin
@@ -1563,8 +1563,8 @@ module FeedTools
           "atom03:published/text()",
           "atom:published/text()",
           "published/text()",
-          "pubDate/text()",
           "dc:date/text()",
+          "pubDate/text()",
           "date/text()"
         ], :select_result_value => true)
         if !published_string.blank?

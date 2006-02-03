@@ -276,7 +276,10 @@ module FeedTools
         content = FeedTools.unescape_entities(content) if repair_entities
         content = FeedTools.tidy_html(content)
       end
-      content.gsub!("\t", "  ") unless content.blank?
+      if FeedTools.configurations[:tab_spaces] != nil
+        spaces = FeedTools.configurations[:tab_spaces].to_i
+        content.gsub!("\t", " " * spaces) unless content.blank?
+      end
       content.strip unless content.blank?
       content = nil if content.blank?
       return content

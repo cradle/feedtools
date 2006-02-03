@@ -1447,8 +1447,8 @@ module FeedTools
           "atom03:published/text()",
           "atom:published/text()",
           "published/text()",
-          "pubDate/text()",
           "dc:date/text()",
+          "pubDate/text()",
           "date/text()"
         ], :select_result_value => true)
         begin
@@ -1509,12 +1509,12 @@ module FeedTools
           "atom03:published/text()",
           "atom:published/text()",
           "published/text()",
+          "dc:date/text()",
           "pubDate/text()",
           "atom10:issued/text()",
           "atom03:issued/text()",
           "atom:issued/text()",
-          "issued/text()",
-          "dc:date/text()"
+          "issued/text()"
         ], :select_result_value => true)
         unless published_string.blank?
           @published = Time.parse(published_string).gmtime rescue nil
