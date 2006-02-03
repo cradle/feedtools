@@ -252,7 +252,8 @@ module FeedTools
         content = Base64.decode64(content_node.inner_xml.strip)
       elsif type == "xhtml" || mode == "xhtml" ||
           type == "xml" || mode == "xml" ||
-          type == "application/xhtml+xml"
+          type == "application/xhtml+xml" ||
+          content_node.namespace == FEED_TOOLS_NAMESPACES['xhtml']
         content = extract_xhtml(content_node)
       elsif type == "escaped" || mode == "escaped"
         content = FeedTools.unescape_entities(
