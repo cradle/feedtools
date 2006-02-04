@@ -44,7 +44,7 @@ module FeedTools
     private :extract_xhtml
     private :process_text_construct
     private :strip_wrapper_element
-    private :extract_autodiscovery_href
+    private :extract_link_by_mime_type
     # :startdoc:
   
     # Represents a feed/feed item's category
@@ -205,6 +205,29 @@ module FeedTools
         @live = false
       else
         load_remote_feed!
+        
+        # Handle autodiscovery
+        if self.http_headers['content-type'] =~ /text\/html/ ||
+            self.http_headers['content-type'] =~ /application\/xhtml\+xml/
+          
+          autodiscovered_url = nil
+          autodiscovered_url = extract_link_by_mime_type(self.feed_data,
+            "application/atom+xml")
+          if autodiscovered_url.nil?
+            autodiscovered_url = extract_link_by_mime_type(self.feed_data,
+              "application/rss+xml")
+          end
+          if autodiscovered_url.nil?
+            autodiscovered_url = extract_link_by_mime_type(self.feed_data,
+              "application/rdf+xml")
+          end
+          unless autodiscovered_url.nil?
+            self.feed_data = nil
+            self.url = autodiscovered_url
+            self.expire! unless self.cache_object.nil?
+            self.update!
+          end
+        end
       end
     end
   

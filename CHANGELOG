@@ -1,4 +1,5 @@
 == FeedTools 0.2.23
+ * autodiscovery implemented
  * now knows a title from a hole in the ground
  * feed cache is set to nil by default now
  * both summary and content elements are generated now
@@ -13,6 +14,7 @@
  * added support for xhtml:div elements
  * dc:date now preempts pubDate
  * now correctly strips out wrapper div elements from text constructs
+ * reorganized some of the helper modules
 == FeedTools 0.2.22
  * fixed another atom generation error
 == FeedTools 0.2.21

@@ -38,7 +38,7 @@ module FeedTools
     private :extract_xhtml
     private :process_text_construct
     private :strip_wrapper_element
-    private :extract_autodiscovery_href
+    private :extract_link_by_mime_type
     # :startdoc:
     
     # This class stores information about a feed item's file enclosures.
