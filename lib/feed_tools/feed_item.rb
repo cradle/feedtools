@@ -27,11 +27,18 @@ module FeedTools
   class FeedItem
     # :stopdoc:
     include REXML
-    include GenericHelper
+    
+    include FeedTools::GenericHelper
+    include FeedTools::XmlHelper
+    include FeedTools::HtmlHelper
     private :validate_options
     private :try_xpaths_all
     private :try_xpaths
     private :select_not_blank
+    private :extract_xhtml
+    private :process_text_construct
+    private :strip_wrapper_element
+    private :extract_autodiscovery_href
     # :startdoc:
     
     # This class stores information about a feed item's file enclosures.

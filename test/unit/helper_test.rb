@@ -4,7 +4,8 @@ require 'feed_tools/helpers/feed_tools_helper'
 
 class HelperTest < Test::Unit::TestCase
   include FeedTools::FeedToolsHelper
-  include FeedTools::GenericHelper
+  include FeedTools::XmlHelper
+  include FeedTools::HtmlHelper
 
   def setup
     FeedTools.reset_configurations

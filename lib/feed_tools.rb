@@ -166,9 +166,6 @@ module FeedTools
   class << self
     include FeedTools::GenericHelper
     private :validate_options
-    private :try_xpaths_all
-    private :try_xpaths
-    private :select_not_blank
   end
   
   @configurations = {}

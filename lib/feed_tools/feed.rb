@@ -22,6 +22,8 @@
 #++
 
 require 'feed_tools/helpers/generic_helper'
+require 'feed_tools/helpers/xml_helper'
+require 'feed_tools/helpers/html_helper'
 
 module FeedTools
   # The <tt>FeedTools::Feed</tt> class represents a web feed's structure.
@@ -31,15 +33,18 @@ module FeedTools
     class << self
       include FeedTools::GenericHelper
       private :validate_options
-      private :try_xpaths_all
-      private :try_xpaths
-      private :select_not_blank
     end
     include FeedTools::GenericHelper
+    include FeedTools::XmlHelper
+    include FeedTools::HtmlHelper
     private :validate_options
     private :try_xpaths_all
     private :try_xpaths
     private :select_not_blank
+    private :extract_xhtml
+    private :process_text_construct
+    private :strip_wrapper_element
+    private :extract_autodiscovery_href
     # :startdoc:
   
     # Represents a feed/feed item's category
