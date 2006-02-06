@@ -476,8 +476,8 @@ class RssTest < Test::Unit::TestCase
   
   def test_item_source
     with_feed(:from_file => 'wellformed/rss/item_source.xml') { |feed|
-      assert_equal("http://example.com/", feed.items.first.source.url)
-      assert_equal("Example source", feed.items.first.source.value)
+      assert_equal("http://example.com/", feed.items.first.source.href)
+      assert_equal("Example source", feed.items.first.source.title)
     }
   end
   
@@ -736,7 +736,7 @@ class RssTest < Test::Unit::TestCase
       assert_equal(1, feed.items.size)
     }
   end
-  
+    
   def test_feed_item_description_plus_content_encoded
     with_feed(:from_data => <<-FEED
       <?xml version="1.0" encoding="iso-8859-1"?>

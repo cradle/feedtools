@@ -38,7 +38,7 @@ class EncodingTest < Test::Unit::TestCase
       </rss>
     FEED
     ) { |feed|
-      assert_equal("utf-8", feed.encoding_from_xml_data)
+      assert_equal("utf-8", feed.encoding_from_feed_data)
       assert_equal("utf-8", feed.encoding)
     }
 
@@ -48,7 +48,7 @@ class EncodingTest < Test::Unit::TestCase
       </rss>
     FEED
     ) { |feed|
-      assert_equal("us-ascii", feed.encoding_from_xml_data)
+      assert_equal("us-ascii", feed.encoding_from_feed_data)
       assert_equal("us-ascii", feed.encoding)
     }
 
@@ -58,7 +58,7 @@ class EncodingTest < Test::Unit::TestCase
       </rss>
     FEED
     ) { |feed|
-      assert_equal("us-ascii", feed.encoding_from_xml_data)
+      assert_equal("us-ascii", feed.encoding_from_feed_data)
       assert_equal("us-ascii", feed.encoding)
     }
 
@@ -68,7 +68,7 @@ class EncodingTest < Test::Unit::TestCase
       </rss>
     FEED
     ) { |feed|
-      assert_equal("big5", feed.encoding_from_xml_data)
+      assert_equal("big5", feed.encoding_from_feed_data)
       assert_equal("big5", feed.encoding)
     }
 
@@ -78,7 +78,7 @@ class EncodingTest < Test::Unit::TestCase
       </rss>
     FEED
     ) { |feed|
-      assert_equal("mac", feed.encoding_from_xml_data)
+      assert_equal("mac", feed.encoding_from_feed_data)
       assert_equal("mac", feed.encoding)
     }
   end

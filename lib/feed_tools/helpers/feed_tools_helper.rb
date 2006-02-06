@@ -31,8 +31,6 @@ require 'feed_tools/helpers/generic_helper'
 # the FeedTools library.
 module FeedTools
   module FeedToolsHelper
-    include FeedTools::GenericHelper
-    private :validate_options
   
     @@default_local_path = File.expand_path('.')
   
@@ -45,12 +43,15 @@ module FeedTools
     def self.default_local_path=(new_default_local_path)
       @@default_local_path = new_default_local_path
     end
-  
-  protected  
+
+  protected
     # Loads a feed within a block for more consistent syntax and control
     # over the FeedTools environment.
     def with_feed(options={})
-      validate_options([ :from_file, :from_url, :from_data, :feed_cache ],
+      FeedTools::GenericHelper.validate_options([ :from_file,
+                                                  :from_url,
+                                                  :from_data,
+                                                  :feed_cache ],
                        options.keys)
       options = { :feed_cache =>
         FeedTools.configurations[:feed_cache] }.merge(options)

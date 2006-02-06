@@ -21,6 +21,9 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
 
+require 'rexml/document'
+require 'feed_tools/feed_item'
+require 'feed_tools/feed_structures'
 require 'feed_tools/helpers/generic_helper'
 require 'feed_tools/helpers/xml_helper'
 require 'feed_tools/helpers/html_helper'
@@ -28,123 +31,12 @@ require 'feed_tools/helpers/html_helper'
 module FeedTools
   # The <tt>FeedTools::Feed</tt> class represents a web feed's structure.
   class Feed
-    # :stopdoc:
-    include REXML
-    class << self
-      include FeedTools::GenericHelper
-      private :validate_options
-    end
-    include FeedTools::GenericHelper
-    include FeedTools::XmlHelper
-    include FeedTools::HtmlHelper
-    private :validate_options
-    private :try_xpaths_all
-    private :try_xpaths
-    private :select_not_blank
-    private :extract_xhtml
-    private :process_text_construct
-    private :strip_wrapper_element
-    private :extract_link_by_mime_type
-    # :startdoc:
-  
-    # Represents a feed/feed item's category
-    class Category
-    
-      # The category term value
-      attr_accessor :term
-      # The categorization scheme
-      attr_accessor :scheme
-      # A human-readable description of the category
-      attr_accessor :label
-    
-      alias_method :value, :term
-      alias_method :category, :term
-      alias_method :domain, :scheme
-    end
-  
-    # Represents a feed/feed item's author
-    class Author
-
-      # The author's real name
-      attr_accessor :name
-      # The author's email address
-      attr_accessor :email
-      # The url of the author's homepage
-      attr_accessor :url
-      # The raw value of the author tag if present
-      attr_accessor :raw
-    end
-  
-    # Represents a feed's image
-    class Image
-
-      # The image's title
-      attr_accessor :title
-      # The image's description
-      attr_accessor :description
-      # The image's url
-      attr_accessor :url
-      # The url to link the image to
-      attr_accessor :link
-      # The width of the image
-      attr_accessor :width
-      # The height of the image
-      attr_accessor :height
-      # The style of the image
-      # Possible values are "icon", "image", or "image-wide"
-      attr_accessor :style
-    end
-
-    # Represents a feed's text input element.
-    # Be aware that this will be ignored for feed generation.  It's a
-    # pointless element that aggregators usually ignore and it doesn't have an
-    # equivalent in all feeds types.
-    class TextInput
-
-      # The label of the Submit button in the text input area.
-      attr_accessor :title
-      # The description explains the text input area.
-      attr_accessor :description
-      # The URL of the CGI script that processes text input requests.
-      attr_accessor :link
-      # The name of the text object in the text input area.
-      attr_accessor :name
-    end
-  
-    # Represents a feed's cloud.
-    # Be aware that this will be ignored for feed generation.
-    class Cloud
-
-      # The domain of the cloud.
-      attr_accessor :domain
-      # The path for the cloud.
-      attr_accessor :path
-      # The port the cloud is listening on.
-      attr_accessor :port
-      # The web services protocol the cloud uses.
-      # Possible values are either "xml-rpc" or "soap".
-      attr_accessor :protocol
-      # The procedure to use to request notification.
-      attr_accessor :register_procedure
-    end
-  
-    # Represents a simple hyperlink
-    class Link
-
-      # The url that is being linked to
-      attr_accessor :url
-      # The content of the hyperlink
-      attr_accessor :value
-    
-      alias_method :href, :url
-    end
-  
     # Initialize the feed object
     def initialize
       super
       @cache_object = nil
       @http_headers = nil
-      @xml_doc = nil
+      @xml_document = nil
       @feed_data = nil
       @feed_data_type = :xml
       @root_node = nil
@@ -167,7 +59,7 @@ module FeedTools
     # * <tt>:cache_only</tt> - If set to true, the feed will only be
     #   pulled from the cache.
     def Feed.open(url, options={})
-      validate_options([ :cache_only ],
+      FeedTools::GenericHelper.validate_options([ :cache_only ],
                        options.keys)
       options = { :cache_only => false }.merge(options)
       
@@ -177,7 +69,7 @@ module FeedTools
       end
       
       # clean up the url
-      url = FeedTools.normalize_url(url)
+      url = FeedTools::UriHelper.normalize_url(url)
 
       # create and load the new feed
       feed = FeedTools::Feed.new
@@ -186,8 +78,8 @@ module FeedTools
       return feed
     end
 
-    # Loads the feed from the remote url if the feed has expired from the cache or cannot be
-    # retrieved from the cache for some reason.
+    # Loads the feed from the remote url if the feed has expired from the
+    # cache or cannot be retrieved from the cache for some reason.
     def update!
       if !FeedTools.feed_cache.nil? &&
           !FeedTools.feed_cache.set_up_correctly?
@@ -211,15 +103,18 @@ module FeedTools
             self.http_headers['content-type'] =~ /application\/xhtml\+xml/
           
           autodiscovered_url = nil
-          autodiscovered_url = extract_link_by_mime_type(self.feed_data,
-            "application/atom+xml")
+          autodiscovered_url =
+            FeedTools::HtmlHelper.extract_link_by_mime_type(self.feed_data,
+              "application/atom+xml")
           if autodiscovered_url.nil?
-            autodiscovered_url = extract_link_by_mime_type(self.feed_data,
-              "application/rss+xml")
+            autodiscovered_url =
+              FeedTools::HtmlHelper.extract_link_by_mime_type(self.feed_data,
+                "application/rss+xml")
           end
           if autodiscovered_url.nil?
-            autodiscovered_url = extract_link_by_mime_type(self.feed_data,
-              "application/rdf+xml")
+            autodiscovered_url =
+              FeedTools::HtmlHelper.extract_link_by_mime_type(self.feed_data,
+                "application/rdf+xml")
           end
           unless autodiscovered_url.nil?
             self.feed_data = nil
@@ -247,7 +142,7 @@ module FeedTools
         # corrected.  So let's fix that url.  And please,
         # just use less crappy browsers instead of badly defined
         # pseudo-protocol hacks.
-        self.url = FeedTools.normalize_url(self.url)
+        self.url = FeedTools::UriHelper.normalize_url(self.url)
       end
     
       # Find out what method we're going to be using to obtain this feed.
@@ -297,7 +192,7 @@ module FeedTools
             feed_uri = URI.parse(feed_url)
           rescue URI::InvalidURIError
             # Uh, maybe try to fix it?
-            feed_uri = URI.parse(FeedTools.normalize_url(feed_url))
+            feed_uri = URI.parse(FeedTools::UriHelper.normalize_url(feed_url))
           end
           
           begin
@@ -502,10 +397,11 @@ module FeedTools
         # Not supported... yet
       elsif retrieval_method == "ftp"
         # Not supported... yet
-        # Technically, CDF feeds are supposed to be able to be accessed directly
-        # from an ftp server.  This is silly, but we'll humor Microsoft.
+        # Technically, CDF feeds are supposed to be able to be accessed
+        # directly from an ftp server.  This is silly, but we'll humor
+        # Microsoft.
         #
-        # Eventually.
+        # Eventually.  If they're lucky.  And someone demands it.
       elsif retrieval_method == "file"
         # Now that we've gone to all that trouble to ensure the url begins
         # with 'file://', strip the 'file://' off the front of the url.
@@ -558,7 +454,7 @@ module FeedTools
         unless self.http_headers.blank?
           @encoding = "utf-8"
         else
-          @encoding = self.encoding_from_xml_data
+          @encoding = self.encoding_from_feed_data
         end
       end
       return @encoding
@@ -566,8 +462,8 @@ module FeedTools
     
     # Returns the encoding of feed calculated only from the xml data.
     # I.e., the encoding we would come up with if we ignore RFC 3023.
-    def encoding_from_xml_data
-      if @encoding_from_xml_data.nil?
+    def encoding_from_feed_data
+      if @encoding_from_feed_data.nil?
         raw_data = self.feed_data
         encoding_from_xml_instruct = 
           raw_data.scan(
@@ -577,7 +473,7 @@ module FeedTools
           encoding_from_xml_instruct.downcase!
         end
         if encoding_from_xml_instruct.blank?
-          doc = Document.new(raw_data)
+          doc = REXML::Document.new(raw_data)
           encoding_from_xml_instruct = doc.encoding.downcase
           if encoding_from_xml_instruct == "utf-8"
             # REXML has a tendency to report utf-8 overzealously, take with
@@ -585,7 +481,7 @@ module FeedTools
             encoding_from_xml_instruct = nil
           end
         else
-          @encoding_from_xml_data = encoding_from_xml_instruct
+          @encoding_from_feed_data = encoding_from_xml_instruct
         end
         if encoding_from_xml_instruct.blank?
           sniff_table = {
@@ -594,17 +490,17 @@ module FeedTools
           }
           sniff = self.feed_data[0..3]
           if sniff_table[sniff] != nil
-            @encoding_from_xml_data = sniff_table[sniff].downcase
+            @encoding_from_feed_data = sniff_table[sniff].downcase
           end
         else
-          @encoding_from_xml_data = encoding_from_xml_instruct
+          @encoding_from_feed_data = encoding_from_xml_instruct
         end
-        if @encoding_from_xml_data.blank?
+        if @encoding_from_feed_data.blank?
           # Safest assumption
-          @encoding_from_xml_data = "utf-8"
+          @encoding_from_feed_data = "utf-8"
         end
       end
-      return @encoding_from_xml_data
+      return @encoding_from_feed_data
     end
   
     # Returns the feed's raw data.
@@ -674,24 +570,25 @@ module FeedTools
     end
   
     # Returns a REXML Document of the feed_data
-    def xml
+    def xml_document
       if self.feed_data_type != :xml
-        @xml_doc = nil
+        @xml_document = nil
       else
-        if @xml_doc.nil?
+        if @xml_document.nil?
           begin
             begin
-              @xml_doc = Document.new(self.feed_data_utf_8)
+              @xml_document = REXML::Document.new(self.feed_data_utf_8)
             rescue Object
               # Something failed, attempt to repair the xml with htree.
-              @xml_doc = HTree.parse(self.feed_data_utf_8).to_rexml
+              @xml_document = HTree.parse(self.feed_data_utf_8).to_rexml
             end
           rescue Object
-            @xml_doc = nil
+            @xml_document = nil
+            raise
           end
         end
       end
-      return @xml_doc
+      return @xml_document
     end
   
     # Returns the first node within the channel_node that matches the xpath
@@ -700,7 +597,7 @@ module FeedTools
       if self.feed_data_type != :xml
         raise "The feed data type is not xml."
       end
-      return try_xpaths(self.channel_node, [xpath],
+      return FeedTools::XmlHelper.try_xpaths(self.channel_node, [xpath],
         :select_result_value => select_result_value)
     end
   
@@ -709,7 +606,7 @@ module FeedTools
       if self.feed_data_type != :xml
         raise "The feed data type is not xml."
       end
-      return try_xpaths_all(self.channel_node, [xpath],
+      return FeedTools::XmlHelper.try_xpaths_all(self.channel_node, [xpath],
         :select_result_value => select_result_value)
     end
   
@@ -721,10 +618,10 @@ module FeedTools
         # E.g.: http://smogzer.tripod.com/smog.rdf
         # ===================================================================
         begin
-          if xml.nil?
+          if self.xml_document.nil?
             return nil
           else
-            @root_node = xml.root
+            @root_node = self.xml_document.root
           end
         rescue
           return nil
@@ -736,7 +633,7 @@ module FeedTools
     # Returns the channel node of the feed.
     def channel_node
       if @channel_node.nil? && self.root_node != nil
-        @channel_node = try_xpaths(self.root_node, [
+        @channel_node = FeedTools::XmlHelper.try_xpaths(self.root_node, [
           "channel",
           "CHANNEL",
           "feedinfo"
@@ -834,11 +731,18 @@ module FeedTools
         end
         version = nil
         begin
-          version = XPath.first(root_node, "@version").to_s.strip.to_f
+          version_string = FeedTools::XmlHelper.try_xpaths(self.root_node, [
+            "@version"
+          ], :select_result_value => true)
+          unless version_string.nil?
+            version = version_string.to_f
+          end
         rescue
         end
         version = nil if version == 0.0
-        default_namespace = XPath.first(root_node, "@xmlns").to_s.strip
+        default_namespace = FeedTools::XmlHelper.try_xpaths(self.root_node, [
+          "@xmlns"
+        ], :select_result_value => true)
         case self.feed_type
         when "atom"
           if default_namespace == FEED_TOOLS_NAMESPACES['atom10']
@@ -868,7 +772,7 @@ module FeedTools
         when "cdf"
           @feed_version = 0.4
         when "!okay/news"
-          @feed_version = nil
+          @feed_version = 1.0
         end
       end
       return @feed_version
@@ -882,15 +786,15 @@ module FeedTools
     # Returns the feed's unique id
     def id
       if @id.nil?
-        @id = select_not_blank([
-          try_xpaths(self.channel_node, [
+        @id = FeedTools::XmlHelper.select_not_blank([
+          FeedTools::XmlHelper.try_xpaths(self.channel_node, [
             "atom10:id/text()",
             "atom03:id/text()",
             "atom:id/text()",
             "id/text()",
             "guid/text()"
           ], :select_result_value => true),
-          try_xpaths(self.root_node, [
+          FeedTools::XmlHelper.try_xpaths(self.root_node, [
             "atom10:id/text()",
             "atom03:id/text()",
             "atom:id/text()",
@@ -933,11 +837,11 @@ module FeedTools
         # put the link in that field instead of the url to the feed.
         # Ordering it last gives them as many chances as humanly possible
         # for them to redeem themselves.  If the link turns out to be the
-        @url = try_xpaths(self.channel_node, [
-          "link[@rel='self']/@href",
+        @url = FeedTools::XmlHelper.try_xpaths(self.channel_node, [
           "atom10:link[@rel='self']/@href",
           "atom03:link[@rel='self']/@href",
           "atom:link[@rel='self']/@href",
+          "link[@rel='self']/@href",
           "admin:feed/@rdf:resource",
           "admin:feed/@resource",
           "feed/@rdf:resource",
@@ -945,9 +849,9 @@ module FeedTools
           "@rdf:about",
           "@about"
         ], :select_result_value => true) do |result|
-          override_url.call(FeedTools.normalize_url(result))
+          override_url.call(FeedTools::UriHelper.normalize_url(result))
         end
-        @url = FeedTools.normalize_url(@url)
+        @url = FeedTools::UriHelper.normalize_url(@url)
         if @url == nil
           @url = original_url
         end
@@ -960,7 +864,7 @@ module FeedTools
   
     # Sets the feed url and prepares the cache_object if necessary.
     def url=(new_url)
-      @url = FeedTools.normalize_url(new_url)
+      @url = FeedTools::UriHelper.normalize_url(new_url)
       self.cache_object.url = new_url unless self.cache_object.nil?
     end
   
@@ -968,18 +872,18 @@ module FeedTools
     def title
       if @title.nil?
         repair_entities = false
-        title_node = try_xpaths(self.channel_node, [
+        title_node = FeedTools::XmlHelper.try_xpaths(self.channel_node, [
           "atom10:title",
           "atom03:title",
           "atom:title",
           "title",
           "dc:title"
         ])
-        @title = process_text_construct(title_node,
+        @title = FeedTools::HtmlHelper.process_text_construct(title_node,
           self.feed_type, self.feed_version)
         if self.feed_type == "atom" ||
             FeedTools.configurations[:always_strip_wrapper_elements]
-          @title = strip_wrapper_element(@title)
+          @title = FeedTools::HtmlHelper.strip_wrapper_element(@title)
         end
         @title = nil if @title.blank?
         self.cache_object.title = @title unless self.cache_object.nil?
@@ -997,7 +901,7 @@ module FeedTools
     def subtitle
       if @subtitle.nil?
         repair_entities = false
-        subtitle_node = try_xpaths(self.channel_node, [
+        subtitle_node = FeedTools::XmlHelper.try_xpaths(self.channel_node, [
           "atom10:subtitle",
           "subtitle",
           "atom03:tagline",
@@ -1018,11 +922,11 @@ module FeedTools
           "blurb",
           "info"
         ])
-        @subtitle = process_text_construct(subtitle_node,
-          self.feed_type, self.feed_version)
+        @subtitle = FeedTools::HtmlHelper.process_text_construct(
+          subtitle_node, self.feed_type, self.feed_version)
         if self.feed_type == "atom" ||
             FeedTools.configurations[:always_strip_wrapper_elements]
-          @subtitle = strip_wrapper_element(@subtitle)
+          @subtitle = FeedTools::HtmlHelper.strip_wrapper_element(@subtitle)
         end
         if @subtitle.blank?
           @subtitle = self.itunes_summary
@@ -1042,17 +946,19 @@ module FeedTools
     # Returns the contents of the itunes:summary element
     def itunes_summary
       if @itunes_summary.nil?
-        @itunes_summary = select_not_blank([
-          try_xpaths(self.channel_node, [
+        @itunes_summary = FeedTools::XmlHelper.select_not_blank([
+          FeedTools::XmlHelper.try_xpaths(self.channel_node, [
             "itunes:summary/text()"
           ], :select_result_value => true),
-          try_xpaths(self.root_node, [
+          FeedTools::XmlHelper.try_xpaths(self.root_node, [
             "itunes:summary/text()"
           ], :select_result_value => true)
         ])
         unless @itunes_summary.blank?
-          @itunes_summary = FeedTools.unescape_entities(@itunes_summary)
-          @itunes_summary = FeedTools.sanitize_html(@itunes_summary)
+          @itunes_summary =
+            FeedTools::HtmlHelper.unescape_entities(@itunes_summary)
+          @itunes_summary =
+            FeedTools::HtmlHelper.sanitize_html(@itunes_summary)
           @itunes_summary.strip!
         else
           @itunes_summary = nil
@@ -1069,17 +975,19 @@ module FeedTools
     # Returns the contents of the itunes:subtitle element
     def itunes_subtitle
       if @itunes_subtitle.nil?
-        @itunes_subtitle = select_not_blank([
-          try_xpaths(self.channel_node, [
+        @itunes_subtitle = FeedTools::XmlHelper.select_not_blank([
+          FeedTools::XmlHelper.try_xpaths(self.channel_node, [
             "itunes:subtitle/text()"
           ], :select_result_value => true),
-          try_xpaths(self.root_node, [
+          FeedTools::XmlHelper.try_xpaths(self.root_node, [
             "itunes:subtitle/text()"
           ], :select_result_value => true)
         ])
         unless @itunes_subtitle.blank?
-          @itunes_subtitle = FeedTools.unescape_entities(@itunes_subtitle)
-          @itunes_subtitle = FeedTools.sanitize_html(@itunes_subtitle)
+          @itunes_subtitle =
+            FeedTools::HtmlHelper.unescape_entities(@itunes_subtitle)
+          @itunes_subtitle =
+            FeedTools::HtmlHelper.sanitize_html(@itunes_subtitle)
           @itunes_subtitle.strip!
         else
           @itunes_subtitle = nil
@@ -1096,81 +1004,45 @@ module FeedTools
     # Returns the feed link
     def link
       if @link.nil?
-        @link = try_xpaths(self.channel_node, [
-          "atom10:link[@type='application/xhtml+xml']/@href",
-          "atom10:link[@type='text/html']/@href",
-          "atom10:link[@rel='alternate']/@href",
-          "atom03:link[@type='application/xhtml+xml']/@href",
-          "atom03:link[@type='text/html']/@href",
-          "atom03:link[@rel='alternate']/@href",
-          "atom:link[@type='application/xhtml+xml']/@href",
-          "atom:link[@type='text/html']/@href",
-          "atom:link[@rel='alternate']/@href",
-          "link[@type='application/xhtml+xml']/@href",
-          "link[@type='text/html']/@href",
-          "link[@rel='alternate']/@href",
-          "link/text()",
-          "@href",
-          "a/@href"
-        ], :select_result_value => true)
-        if @link.blank?
-          if FeedTools.is_uri?(self.guid) &&
-              !(self.guid =~ /^urn:uuid:/) &&
-              !(self.guid =~ /^tag:/)
-            @link = self.guid
+        max_score = 0
+        for link_object in self.links.reverse
+          score = 0
+          if FeedTools::HtmlHelper.html_type?(link_object.type)
+            score = score + 2
+          elsif link_object.type != nil
+            score = score - 1
+          end
+          if FeedTools::HtmlHelper.xml_type?(link_object.type)
+            score = score + 1
+          end
+          if link_object.rel == "alternate"
+            score = score + 1
+          end
+          if link_object.rel == "self"
+            score = score - 1
+          end
+          if score >= max_score
+            max_score = score
+            @link = link_object.href
           end
         end
-        if @link.blank? && channel_node != nil
-          # Technically, we shouldn't use the base attribute for this, but
-          # if the href attribute is missing, it's already a given that we're
-          # looking at a messed up CDF file.  We can always pray it's correct.
-          @link = XPath.first(channel_node, "@base").to_s
+        if @link.blank?
+          @link = FeedTools::XmlHelper.try_xpaths(self.channel_node, [
+            "@href"
+          ], :select_result_value => true)
+        end
+        if @link.blank?
+          if FeedTools::UriHelper.is_uri?(self.id) &&
+              (self.id =~ /^http/)
+            @link = self.id
+          end
         end
         if !@link.blank?
-          @link = FeedTools.unescape_entities(@link)
-        end
-        if @link.blank?
-          link_node = try_xpaths(self.channel_node, [
-            "atom10:link",
-            "atom03:link",
-            "atom:link",
-            "link"
-          ])
-          if link_node != nil
-            if link_node.attributes['type'].to_s =~ /^image/ ||
-                link_node.attributes['type'].to_s =~ /^application/ || 
-                link_node.attributes['type'].to_s =~ /xml/ ||
-                link_node.attributes['rel'].to_s =~ /self/
-              for child in self.channel_node
-                if child.class == REXML::Element
-                  if child.name.downcase == "link"
-                    if child.attributes['type'].to_s =~ /^image/ ||
-                        child.attributes['type'].to_s =~ /^application/ || 
-                        child.attributes['type'].to_s =~ /xml/ ||
-                        child.attributes['rel'].to_s =~ /self/
-                      @link = nil
-                      next
-                    else
-                      @link = child.attributes['href'].to_s
-                      if @link.blank?
-                        @link = child.inner_xml
-                      end
-                      if @link.blank?
-                        next
-                      end
-                      break
-                    end
-                  end
-                end
-              end
-            else
-              @link = link_node.attributes['href'].to_s
-            end
-          end
+          @link = FeedTools::HtmlHelper.unescape_entities(@link)
         end
         @link = nil if @link.blank?
         if FeedTools.configurations[:url_normalization_enabled]
-          @link = FeedTools.normalize_url(@link)
+          @link = FeedTools::UriHelper.normalize_url(@link)
         end
         unless self.cache_object.nil?
           self.cache_object.link = @link
@@ -1186,11 +1058,134 @@ module FeedTools
         self.cache_object.link = new_link
       end
     end
+    
+    # Returns the links collection
+    def links
+      if @links.nil?
+        @links = []
+        link_nodes =
+          FeedTools::XmlHelper.combine_xpaths_all(self.channel_node, [
+            "atom10:link",
+            "atom03:link",
+            "atom:link",
+            "link",
+            "a",
+            "url",
+            "href"
+          ])
+        for link_node in link_nodes
+          link_object = FeedTools::Link.new
+          link_object.href = FeedTools::XmlHelper.try_xpaths(link_node, [
+            "@atom10:href",
+            "@atom03:href",
+            "@atom:href",
+            "@href",
+            "text()"
+          ], :select_result_value => true)
+          # Resolve relative urls here
+          if FeedTools.configurations[:url_normalization_enabled]
+            link_object.href =
+              FeedTools::UriHelper.normalize_url(link_object.href)
+          end
+          link_object.hreflang = FeedTools::XmlHelper.try_xpaths(link_node, [
+            "@atom10:hreflang",
+            "@atom03:hreflang",
+            "@atom:hreflang",
+            "@hreflang"
+          ], :select_result_value => true)
+          unless link_object.hreflang.nil?
+            link_object.hreflang = link_object.hreflang.downcase
+          end
+          link_object.rel = FeedTools::XmlHelper.try_xpaths(link_node, [
+            "@atom10:rel",
+            "@atom03:rel",
+            "@atom:rel",
+            "@rel"
+          ], :select_result_value => true)
+          unless link_object.rel.nil?
+            link_object.rel = link_object.rel.downcase
+          end
+          link_object.type = FeedTools::XmlHelper.try_xpaths(link_node, [
+            "@atom10:type",
+            "@atom03:type",
+            "@atom:type",
+            "@type"
+          ], :select_result_value => true)
+          unless link_object.type.nil?
+            link_object.type = link_object.type.downcase
+          end
+          link_object.title = FeedTools::XmlHelper.try_xpaths(link_node, [
+            "@atom10:title",
+            "@atom03:title",
+            "@atom:title",
+            "@title",
+            "text()"
+          ], :select_result_value => true)
+          # This catches the ambiguities between atom, rss, and cdf
+          if link_object.title == link_object.href
+            link_object.title = nil
+          end
+          link_object.length = FeedTools::XmlHelper.try_xpaths(link_node, [
+            "@atom10:length",
+            "@atom03:length",
+            "@atom:length",
+            "@length"
+          ], :select_result_value => true)
+          if !link_object.length.nil?
+            link_object.length = link_object.length.to_i
+          else
+            if !link_object.type.nil? && link_object.type[0..4] != "text" &&
+                link_object.type[-3..-1] != "xml" &&
+                link_object.href =~ /^http:\/\//
+              # Retrieve the length with an http HEAD request
+            else
+              link_object.length = nil
+            end
+          end
+          @links << link_object
+        end
+      end
+      return @links
+    end
+    
+    # Sets the links collection
+    def links=(new_links)
+      @links = new_links
+    end
+    
+    # Returns the base uri for the feed, used for resolving relative paths
+    def base_uri
+      if @base_uri.nil?
+        @base_uri = FeedTools::XmlHelper.try_xpaths(self.channel_node, [
+          "@base"
+        ], :select_result_value => true)
+        if @base_uri.blank?
+          @base_uri =
+            FeedTools::GenericHelper.recursion_trap(:feed_base_uri) do
+              self.link
+            end
+        end
+        if !@base_uri.blank?
+          @base_uri = FeedTools::UriHelper.normalize_url(@base_uri)
+        elsif self.url != nil && self.url =~ /^http/
+          @base_uri = FeedTools::UriHelper.normalize_url(
+            URI.parse(self.url).host)
+        else
+          @base_uri = nil
+        end
+      end
+      return @base_uri
+    end
+            
+    # Sets the base uri for the feed
+    def base_uri=(new_base_uri)
+      @base_uri = new_base_uri
+    end
 
     # Returns the url to the icon file for this feed.
     def icon
       if @icon.nil?
-        icon_node = try_xpaths(self.channel_node, [
+        icon_node = FeedTools::XmlHelper.try_xpaths(self.channel_node, [
           "link[@rel='icon']",
           "link[@rel='shortcut icon']",
           "link[@type='image/x-icon']",
@@ -1199,15 +1194,14 @@ module FeedTools
           "LOGO[@STYLE='ICON']"
         ])
         unless icon_node.nil?
-          @icon = FeedTools.unescape_entities(
-            XPath.first(icon_node, "@href").to_s)
-          if @icon.blank?
-            @icon = FeedTools.unescape_entities(
-              XPath.first(icon_node, "text()").to_s)
-            unless FeedTools.is_uri? @icon
-              @icon = nil
-            end
-          end
+          @icon = FeedTools::XmlHelper.try_xpaths(icon_node, [
+            "@atom10:href",
+            "@atom03:href",
+            "@atom:href",
+            "@href",
+            "text()"
+          ], :select_result_value => true)
+          @icon = nil unless FeedTools::UriHelper.is_uri?(@icon)
           @icon = nil if @icon.blank?
         end
       end
@@ -1222,7 +1216,8 @@ module FeedTools
       if @favicon.nil?
         if !self.link.blank?
           begin
-            link_uri = URI.parse(FeedTools.normalize_url(self.link))
+            link_uri = URI.parse(
+              FeedTools::UriHelper.normalize_url(self.link))
             if link_uri.scheme == "http"
               @favicon =
                 "http://" + link_uri.host + "/favicon.ico"
@@ -1232,7 +1227,8 @@ module FeedTools
           end
           if @favicon.nil? && !self.url.blank?
             begin
-              feed_uri = URI.parse(FeedTools.normalize_url(self.url))
+              feed_uri = URI.parse(
+                FeedTools::UriHelper.normalize_url(self.url))
               if feed_uri.scheme == "http"
                 @favicon =
                   "http://" + feed_uri.host + "/favicon.ico"
@@ -1251,8 +1247,8 @@ module FeedTools
     # Returns the feed author
     def author
       if @author.nil?
-        @author = FeedTools::Feed::Author.new
-        author_node = try_xpaths(self.channel_node, [
+        @author = FeedTools::Author.new
+        author_node = FeedTools::XmlHelper.try_xpaths(self.channel_node, [
           "atom10:author",
           "atom03:author",
           "atom:author",
@@ -1262,16 +1258,18 @@ module FeedTools
           "dc:creator"
         ])
         unless author_node.nil?
-          @author.raw = FeedTools.unescape_entities(
-            XPath.first(author_node, "text()").to_s).strip
-          @author.raw = nil if @author.raw.blank?
+          @author.raw = FeedTools::XmlHelper.try_xpaths(
+            author_node, ["text()"], :select_result_value => true)
+          @author.raw = FeedTools::HtmlHelper.unescape_entities(@author.raw)
           unless @author.raw.nil?
             raw_scan = @author.raw.scan(
               /(.*)\((\b[A-Z0-9._%-\+]+@[A-Z0-9._%-]+\.[A-Z]{2,4}\b)\)/i)
             if raw_scan.nil? || raw_scan.size == 0
               raw_scan = @author.raw.scan(
                 /(\b[A-Z0-9._%-\+]+@[A-Z0-9._%-]+\.[A-Z]{2,4}\b)\s*\((.*)\)/i)
-              author_raw_pair = raw_scan.first.reverse unless raw_scan.size == 0
+              unless raw_scan.size == 0
+                author_raw_pair = raw_scan.first.reverse
+              end
             else
               author_raw_pair = raw_scan.first
             end
@@ -1288,16 +1286,16 @@ module FeedTools
             else
               unless @author.raw.include?("@")
                 # We can be reasonably sure we are looking at something
-                # that the creator didn't intend to contain an email address if
-                # it got through the preceeding regexes and it doesn't
+                # that the creator didn't intend to contain an email address
+                # if it got through the preceeding regexes and it doesn't
                 # contain the tell-tale '@' symbol.
                 @author.name = @author.raw
               end
             end
           end
           if @author.name.blank?
-            @author.name = FeedTools.unescape_entities(
-              try_xpaths(author_node, [
+            @author.name = FeedTools::HtmlHelper.unescape_entities(
+              FeedTools::XmlHelper.try_xpaths(author_node, [
                 "atom10:name/text()",
                 "atom03:name/text()",
                 "atom:name/text()",
@@ -1307,8 +1305,8 @@ module FeedTools
             )
           end
           if @author.email.blank?
-            @author.email = FeedTools.unescape_entities(
-              try_xpaths(author_node, [
+            @author.email = FeedTools::HtmlHelper.unescape_entities(
+              FeedTools::XmlHelper.try_xpaths(author_node, [
                 "atom10:email/text()",
                 "atom03:email/text()",
                 "atom:email/text()",
@@ -1318,8 +1316,8 @@ module FeedTools
             )
           end
           if @author.url.blank?
-            @author.url = FeedTools.unescape_entities(
-              try_xpaths(author_node, [
+            @author.url = FeedTools::HtmlHelper.unescape_entities(
+              FeedTools::XmlHelper.try_xpaths(author_node, [
                 "atom10:url/text()",
                 "atom03:url/text()",
                 "atom:url/text()",
@@ -1360,7 +1358,7 @@ module FeedTools
         # We're not looking at an author object, this is probably a string,
         # default to setting the author's name.
         if @author.nil?
-          @author = FeedTools::Feed::Author.new
+          @author = FeedTools::Author.new
         end
         @author.name = new_author
       end
@@ -1369,14 +1367,13 @@ module FeedTools
     # Returns the feed publisher
     def publisher
       if @publisher.nil?
-        @publisher = FeedTools::Feed::Author.new
-        publisher_node = try_xpaths(self.channel_node, [
-          "webMaster/text()",
-          "dc:publisher/text()"
-        ])
+        @publisher = FeedTools::Author.new
+        @publisher.raw = FeedTools::HtmlHelper.unescape_entities(        
+          FeedTools::XmlHelper.try_xpaths(self.channel_node, [
+            "webMaster/text()",
+            "dc:publisher/text()"
+          ], :select_result_value => true))
 
-        # Set the author name
-        @publisher.raw = FeedTools.unescape_entities(publisher_node.to_s)
         unless @publisher.raw.blank?
           raw_scan = @publisher.raw.scan(
             /(.*)\((\b[A-Z0-9._%-\+]+@[A-Z0-9._%-]+\.[A-Z]{2,4}\b)\)/i)
@@ -1429,7 +1426,7 @@ module FeedTools
         # We're not looking at an Author object, this is probably a string,
         # default to setting the publisher's name.
         if @publisher.nil?
-          @publisher = FeedTools::Feed::Author.new
+          @publisher = FeedTools::Author.new
         end
         @publisher.name = new_publisher
       end
@@ -1443,8 +1440,8 @@ module FeedTools
     # attribute.
     def itunes_author
       if @itunes_author.nil?
-        @itunes_author = FeedTools.unescape_entities(
-          try_xpaths(self.channel_node, [
+        @itunes_author = FeedTools::HtmlHelper.unescape_entities(
+          FeedTools::XmlHelper.try_xpaths(self.channel_node, [
             "itunes:author/text()"
           ], :select_result_value => true)
         )
@@ -1456,7 +1453,7 @@ module FeedTools
     # Returns the feed time
     def time
       if @time.nil?
-        time_string = try_xpaths(self.channel_node, [
+        time_string = FeedTools::XmlHelper.try_xpaths(self.channel_node, [
           "atom10:updated/text()",
           "atom03:updated/text()",
           "atom:updated/text()",
@@ -1504,7 +1501,7 @@ module FeedTools
     # Returns the feed updated time
     def updated
       if @updated.nil?
-        updated_string = try_xpaths(self.channel_node, [
+        updated_string = FeedTools::XmlHelper.try_xpaths(self.channel_node, [
           "atom10:updated/text()",
           "atom03:updated/text()",
           "atom:updated/text()",
@@ -1532,18 +1529,19 @@ module FeedTools
     # Returns the feed published time
     def published
       if @published.nil?
-        published_string = try_xpaths(self.channel_node, [
-          "atom10:published/text()",
-          "atom03:published/text()",
-          "atom:published/text()",
-          "published/text()",
-          "dc:date/text()",
-          "pubDate/text()",
-          "atom10:issued/text()",
-          "atom03:issued/text()",
-          "atom:issued/text()",
-          "issued/text()"
-        ], :select_result_value => true)
+        published_string =
+          FeedTools::XmlHelper.try_xpaths(self.channel_node, [
+            "atom10:published/text()",
+            "atom03:published/text()",
+            "atom:published/text()",
+            "published/text()",
+            "dc:date/text()",
+            "pubDate/text()",
+            "atom10:issued/text()",
+            "atom03:issued/text()",
+            "atom:issued/text()",
+            "issued/text()"
+          ], :select_result_value => true)
         unless published_string.blank?
           @published = Time.parse(published_string).gmtime rescue nil
         else
@@ -1562,22 +1560,24 @@ module FeedTools
     def categories
       if @categories.nil?
         @categories = []
-        category_nodes = try_xpaths_all(self.channel_node, [
-          "category",
-          "dc:subject"
-        ])
+        category_nodes =
+          FeedTools::XmlHelper.try_xpaths_all(self.channel_node, [
+            "category",
+            "dc:subject"
+          ])
         unless category_nodes.nil?
           for category_node in category_nodes
-            category = FeedTools::Feed::Category.new
-            category.term = try_xpaths(category_node, [
+            category = FeedTools::Category.new
+            category.term = FeedTools::XmlHelper.try_xpaths(category_node, [
               "@term",
               "text()"
             ], :select_result_value => true)
             category.term.strip! unless category.term.blank?
-            category.label = try_xpaths(category_node, ["@label"],
+            category.label = FeedTools::XmlHelper.try_xpaths(
+              category_node, ["@label"],
               :select_result_value => true)
             category.label.strip! unless category.label.blank?
-            category.scheme = try_xpaths(category_node, [
+            category.scheme = FeedTools::XmlHelper.try_xpaths(category_node, [
               "@scheme",
               "@domain"
             ], :select_result_value => true)
@@ -1593,7 +1593,7 @@ module FeedTools
     def images
       if @images.nil?
         @images = []
-        image_nodes = try_xpaths_all(self.channel_node, [
+        image_nodes = FeedTools::XmlHelper.try_xpaths_all(self.channel_node, [
           "image",
           "logo",
           "apple-wallpapers:image",
@@ -1604,15 +1604,15 @@ module FeedTools
         ])
         unless image_nodes.blank?
           for image_node in image_nodes
-            image = FeedTools::Feed::Image.new
-            image.url = try_xpaths(image_node, [
+            image = FeedTools::Image.new
+            image.url = FeedTools::XmlHelper.try_xpaths(image_node, [
               "url/text()",
               "@rdf:resource",
               "text()"
             ], :select_result_value => true)
             if image.url.blank? && (image_node.name == "logo" ||
                 (image_node.attributes['type'].to_s =~ /^image/) == 0)
-              image.url = try_xpaths(image_node, [
+              image.url = FeedTools::XmlHelper.try_xpaths(image_node, [
                 "@atom10:href",
                 "@atom03:href",
                 "@atom:href",
@@ -1623,27 +1623,27 @@ module FeedTools
               end
             end
             if image.url.blank? && image_node.name == "LOGO"
-              image.url = try_xpaths(image_node, [
+              image.url = FeedTools::XmlHelper.try_xpaths(image_node, [
                 "@href"
               ], :select_result_value => true)
             end
             image.url.strip! unless image.url.nil?
-            image.title = try_xpaths(image_node,
+            image.title = FeedTools::XmlHelper.try_xpaths(image_node,
               ["title/text()"], :select_result_value => true)
             image.title.strip! unless image.title.nil?
-            image.description = try_xpaths(image_node,
+            image.description = FeedTools::XmlHelper.try_xpaths(image_node,
               ["description/text()"], :select_result_value => true)
             image.description.strip! unless image.description.nil?
-            image.link = try_xpaths(image_node,
+            image.link = FeedTools::XmlHelper.try_xpaths(image_node,
               ["link/text()"], :select_result_value => true)
             image.link.strip! unless image.link.nil?
-            image.height = try_xpaths(image_node,
+            image.height = FeedTools::XmlHelper.try_xpaths(image_node,
               ["height/text()"], :select_result_value => true).to_i
             image.height = nil if image.height <= 0
-            image.width = try_xpaths(image_node,
+            image.width = FeedTools::XmlHelper.try_xpaths(image_node,
               ["width/text()"], :select_result_value => true).to_i
             image.width = nil if image.width <= 0
-            image.style = try_xpaths(image_node, [
+            image.style = FeedTools::XmlHelper.try_xpaths(image_node, [
               "style/text()",
               "@style"
             ], :select_result_value => true)
@@ -1659,20 +1659,25 @@ module FeedTools
     # Returns the feed's text input field
     def text_input
       if @text_input.nil?
-        @text_input = FeedTools::Feed::TextInput.new
-        text_input_node = try_xpaths(self.channel_node, ["textInput"])
+        @text_input = FeedTools::TextInput.new
+        text_input_node =
+          FeedTools::XmlHelper.try_xpaths(self.channel_node, ["textInput"])
         unless text_input_node.nil?
           @text_input.title =
-            try_xpaths(text_input_node, ["title/text()"],
+            FeedTools::XmlHelper.try_xpaths(text_input_node,
+              ["title/text()"],
               :select_result_value => true)
           @text_input.description =
-            try_xpaths(text_input_node, ["description/text()"],
+            FeedTools::XmlHelper.try_xpaths(text_input_node,
+              ["description/text()"],
               :select_result_value => true)
           @text_input.link =
-            try_xpaths(text_input_node, ["link/text()"],
+            FeedTools::XmlHelper.try_xpaths(text_input_node,
+              ["link/text()"],
               :select_result_value => true)
           @text_input.name =
-            try_xpaths(text_input_node, ["name/text()"],
+            FeedTools::XmlHelper.try_xpaths(text_input_node,
+              ["name/text()"],
               :select_result_value => true)
         end
       end
@@ -1683,7 +1688,7 @@ module FeedTools
     def rights
       if @rights.nil?
         repair_entities = false
-        rights_node = try_xpaths(self.channel_node, [
+        rights_node = FeedTools::XmlHelper.try_xpaths(self.channel_node, [
           "atom10:copyright",
           "atom03:copyright",
           "atom:copyright",
@@ -1692,11 +1697,11 @@ module FeedTools
           "dc:rights",
           "rights"
         ])
-        @rights = process_text_construct(rights_node,
+        @rights = FeedTools::HtmlHelper.process_text_construct(rights_node,
           self.feed_type, self.feed_version)
         if self.feed_type == "atom" ||
             FeedTools.configurations[:always_strip_wrapper_elements]
-          @rights = strip_wrapper_element(@rights)
+          @rights = FeedTools::HtmlHelper.strip_wrapper_element(@rights)
         end
       end
       return @rights
@@ -1712,10 +1717,12 @@ module FeedTools
       if @time_to_live.nil?
         unless channel_node.nil?
           # get the feed time to live from the xml document
-          update_frequency = try_xpaths(self.channel_node,
+          update_frequency = FeedTools::XmlHelper.try_xpaths(
+            self.channel_node,
             ["syn:updateFrequency/text()"], :select_result_value => true)
           if !update_frequency.blank?
-            update_period = try_xpaths(self.channel_node,
+            update_period = FeedTools::XmlHelper.try_xpaths(
+              self.channel_node,
               ["syn:updatePeriod/text()"], :select_result_value => true)
             if update_period == "daily"
               @time_to_live = update_frequency.to_i.day
@@ -1732,10 +1739,12 @@ module FeedTools
           end
           if @time_to_live.nil?
             # usually expressed in minutes
-            update_frequency = try_xpaths(self.channel_node, ["ttl/text()"],
+            update_frequency = FeedTools::XmlHelper.try_xpaths(
+              self.channel_node, ["ttl/text()"],
               :select_result_value => true)
             if !update_frequency.blank?
-              update_span = try_xpaths(self.channel_node, ["ttl/@span"],
+              update_span = FeedTools::XmlHelper.try_xpaths(
+                self.channel_node, ["ttl/@span"],
                 :select_result_value => true)
               if update_span == "seconds"
                 @time_to_live = update_frequency.to_i
@@ -1806,18 +1815,23 @@ module FeedTools
     # Returns the feed's cloud
     def cloud
       if @cloud.nil?
-        @cloud = FeedTools::Feed::Cloud.new
-        @cloud.domain = try_xpaths(self.channel_node, ["cloud/@domain"],
+        @cloud = FeedTools::Cloud.new
+        @cloud.domain = FeedTools::XmlHelper.try_xpaths(
+          self.channel_node, ["cloud/@domain"],
           :select_result_value => true)
-        @cloud.port = try_xpaths(self.channel_node, ["cloud/@port"],
+        @cloud.port = FeedTools::XmlHelper.try_xpaths(
+          self.channel_node, ["cloud/@port"],
           :select_result_value => true)
-        @cloud.path = try_xpaths(self.channel_node, ["cloud/@path"],
+        @cloud.path = FeedTools::XmlHelper.try_xpaths(
+          self.channel_node, ["cloud/@path"],
           :select_result_value => true)
         @cloud.register_procedure =
-          try_xpaths(self.channel_node, ["cloud/@registerProcedure"],
+          FeedTools::XmlHelper.try_xpaths(
+            self.channel_node, ["cloud/@registerProcedure"],
             :select_result_value => true)
         @cloud.protocol =
-          try_xpaths(self.channel_node, ["cloud/@protocol"],
+          FeedTools::XmlHelper.try_xpaths(
+            self.channel_node, ["cloud/@protocol"],
             :select_result_value => true)
         @cloud.protocol.downcase unless @cloud.protocol.nil?
         @cloud.port = @cloud.port.to_s.to_i
@@ -1834,9 +1848,12 @@ module FeedTools
     # Returns the feed generator
     def generator
       if @generator.nil?
-        @generator = try_xpaths(self.channel_node, ["generator/text()"],
+        @generator = FeedTools::XmlHelper.try_xpaths(
+          self.channel_node, ["generator/text()"],
           :select_result_value => true)
-        @generator = FeedTools.strip_html(@generator) unless @generator.nil?
+        unless @generator.nil?
+          @generator = FeedTools::HtmlHelper.strip_html(@generator)
+        end
       end
       return @generator
     end
@@ -1854,9 +1871,10 @@ module FeedTools
     # Returns the feed docs
     def docs
       if @docs.nil?
-        @docs = try_xpaths(self.channel_node, ["docs/text()"],
+        @docs = FeedTools::XmlHelper.try_xpaths(
+          self.channel_node, ["docs/text()"],
           :select_result_value => true)
-        @docs = FeedTools.strip_html(@docs) unless @docs.nil?
+        @docs = FeedTools::HtmlHelper.strip_html(@docs) unless @docs.nil?
       end
       return @docs
     end
@@ -1869,15 +1887,15 @@ module FeedTools
     # Returns the feed language
     def language
       if @language.nil?
-        @language = select_not_blank([
-          try_xpaths(self.channel_node, [
+        @language = FeedTools::XmlHelper.select_not_blank([
+          FeedTools::XmlHelper.try_xpaths(self.channel_node, [
             "language/text()",
             "dc:language/text()",
             "@dc:language",
             "@xml:lang",
             "xml:lang/text()"
           ], :select_result_value => true),
-          try_xpaths(self.root_node, [
+          FeedTools::XmlHelper.try_xpaths(self.root_node, [
             "@xml:lang",
             "xml:lang/text()"
           ], :select_result_value => true)
@@ -1898,7 +1916,7 @@ module FeedTools
     # Returns true if this feed contains explicit material.
     def explicit?
       if @explicit.nil?
-        explicit_string = try_xpaths(self.channel_node, [
+        explicit_string = FeedTools::XmlHelper.try_xpaths(self.channel_node, [
           "media:adult/text()",
           "itunes:explicit/text()"
         ], :select_result_value => true)
@@ -1919,14 +1937,14 @@ module FeedTools
     # Returns the feed entries
     def entries
       if @entries.nil?
-        raw_entries = select_not_blank([
-          try_xpaths_all(self.channel_node, [
+        raw_entries = FeedTools::XmlHelper.select_not_blank([
+          FeedTools::XmlHelper.try_xpaths_all(self.channel_node, [
             "atom10:entry",
             "atom03:entry",
             "atom:entry",
             "entry"
           ]),
-          try_xpaths_all(self.root_node, [
+          FeedTools::XmlHelper.try_xpaths_all(self.root_node, [
             "rss10:item",
             "rss11:items/rss11:item",
             "rss11:items/item",
@@ -1938,7 +1956,7 @@ module FeedTools
             "atom:entry",
             "entry"
           ]),
-          try_xpaths_all(self.channel_node, [
+          FeedTools::XmlHelper.try_xpaths_all(self.channel_node, [
             "rss10:item",
             "rss11:items/rss11:item",
             "rss11:items/item",
@@ -2096,11 +2114,11 @@ module FeedTools
           channel_attributes = {}
           unless self.link.nil?
             channel_attributes["rdf:about"] =
-              FeedTools.escape_entities(self.link)
+              FeedTools::HtmlHelper.escape_entities(self.link)
           end
           xml_builder.channel(channel_attributes) do
             unless self.title.blank?
-              xml_builder.title(FeedTools.strip_html(self.title))
+              xml_builder.title(FeedTools::HtmlHelper.strip_html(self.title))
             else
               xml_builder.title
             end
@@ -2110,8 +2128,9 @@ module FeedTools
               xml_builder.link
             end
             unless images.blank?
-              xml_builder.image("rdf:resource" => FeedTools.escape_entities(
-                images.first.url))
+              xml_builder.image("rdf:resource" =>
+                FeedTools::HtmlHelper.escape_entities(
+                  images.first.url))
             end
             unless description.nil? || description == ""
               xml_builder.description(description)
@@ -2137,7 +2156,7 @@ module FeedTools
                         "item link field."
                     end
                     xml_builder.tag!("rdf:li", "rdf:resource" =>
-                      FeedTools.escape_entities(item.link))
+                      FeedTools::HtmlHelper.escape_entities(item.link))
                   end
                 end
               end
@@ -2156,8 +2175,8 @@ module FeedTools
               end
             end
             best_image = self.images.first if best_image.nil?
-            xml_builder.image(
-                "rdf:about" => FeedTools.escape_entities(best_image.url)) do
+            xml_builder.image("rdf:about" =>
+                FeedTools::HtmlHelper.escape_entities(best_image.url)) do
               if !best_image.title.blank?
                 xml_builder.title(best_image.title)
               elsif !self.title.blank?
@@ -2195,7 +2214,7 @@ module FeedTools
             "xmlns:media" => FEED_TOOLS_NAMESPACES['media']) do
           xml_builder.channel do
             unless self.title.blank?
-              xml_builder.title(FeedTools.strip_html(self.title))
+              xml_builder.title(FeedTools::HtmlHelper.strip_html(self.title))
             end
             unless self.link.blank?
               xml_builder.link(link)
@@ -2254,10 +2273,12 @@ module FeedTools
                 "type" => "application/atom+xml")
           end
           unless self.link.blank?
-            xml_builder.link("href" => FeedTools.escape_entities(self.link),
-                "rel" => "alternate",
-                "title" => FeedTools.escape_entities(
-                  FeedTools.strip_html(self.title)))
+            xml_builder.link(
+              "href" =>
+                FeedTools::HtmlHelper.escape_entities(self.link),
+              "rel" => "alternate",
+              "title" => FeedTools::HtmlHelper.escape_entities(
+                FeedTools::HtmlHelper.strip_html(self.title)))
           end
           unless self.subtitle.blank?
             xml_builder.subtitle(self.subtitle,
@@ -2278,9 +2299,9 @@ module FeedTools
           xml_builder.generator(FeedTools.configurations[:generator_name] +
             " - " + FeedTools.configurations[:generator_href])
           if self.id != nil
-            unless FeedTools.is_uri? self.id
+            unless FeedTools::UriHelper.is_uri? self.id
               if self.link != nil
-                xml_builder.id(FeedTools.build_urn_uri(self.link))
+                xml_builder.id(FeedTools::UriHelper.build_urn_uri(self.link))
               else
                 raise "The unique id must be a valid URI."
               end
@@ -2288,7 +2309,7 @@ module FeedTools
               xml_builder.id(self.id)
             end
           elsif self.link != nil
-            xml_builder.id(FeedTools.build_urn_uri(self.link))
+            xml_builder.id(FeedTools::UriHelper.build_urn_uri(self.link))
           else
             raise "Cannot build feed, missing feed unique id."
           end

@@ -28,11 +28,31 @@ module FeedTools
   module GenericHelper
     # Raises an exception if an invalid option has been specified to prevent
     # misspellings from slipping through 
-    def validate_options(valid_option_keys, supplied_option_keys)
+    def self.validate_options(valid_option_keys, supplied_option_keys)
       unknown_option_keys = supplied_option_keys - valid_option_keys
       unless unknown_option_keys.empty?
         raise "Unknown options: #{unknown_option_keys}"
       end
+    end
+    
+    # Nifty little method that takes a block and returns nil if recursion
+    # occurs or the block's result value if it doesn't.
+    def self.recursion_trap(lock_object, &block)
+      if @lock_ids.nil?
+        @lock_ids = []
+      end
+      if !@lock_ids.include?(lock_object.object_id)
+        @lock_ids << lock_object.object_id
+      else
+        return nil
+      end
+      begin
+        result = block.call
+      rescue SystemStackError
+        result = nil
+      end
+      @lock_ids.delete(lock_object.object_id)
+      return result
     end
   end
 end

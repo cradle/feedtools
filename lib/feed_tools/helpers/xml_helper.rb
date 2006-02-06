@@ -22,22 +22,14 @@
 #++
 
 require 'feed_tools'
+require 'feed_tools/helpers/generic_helper'
 require 'rexml/document'
 
 module FeedTools
   # Generic xml methods needed in numerous places throughout FeedTools
-  module XmlHelper
-    # Raises an exception if an invalid option has been specified to prevent
-    # misspellings from slipping through 
-    def validate_options(valid_option_keys, supplied_option_keys)
-      unknown_option_keys = supplied_option_keys - valid_option_keys
-      unless unknown_option_keys.empty?
-        raise "Unknown options: #{unknown_option_keys}"
-      end
-    end
-    
+  module XmlHelper    
     # Selects the first non-blank result.
-    def select_not_blank(results, &block)
+    def self.select_not_blank(results, &block)
       for result in results
         blank_result = false
         if !block.nil?
@@ -55,9 +47,9 @@ module FeedTools
     # Runs through a list of XPath queries on an element or document and
     # returns the first non-blank result.  Subsequent XPath queries will
     # not be evaluated.
-    def try_xpaths(element, xpath_list,
+    def self.try_xpaths(element, xpath_list,
         options={}, &block)
-      validate_options([ :select_result_value ],
+      FeedTools::GenericHelper.validate_options([ :select_result_value ],
                        options.keys)
       options = { :select_result_value => false }.merge(options)
 
@@ -115,10 +107,10 @@ module FeedTools
     end
     
     # Runs through a list of XPath queries on an element or document and
-    # returns the first non-empty result.  Subsequent XPath queries will
+    # returns all non-empty results.  Subsequent XPath queries will
     # not be evaluated.
-    def try_xpaths_all(element, xpath_list, options={})
-      validate_options([ :select_result_value ],
+    def self.try_xpaths_all(element, xpath_list, options={})
+      FeedTools::GenericHelper.validate_options([ :select_result_value ],
                        options.keys)
       options = { :select_result_value => false }.merge(options)
 
@@ -127,6 +119,7 @@ module FeedTools
         return []
       end
       for xpath in xpath_list
+        # Namespace aware
         results = REXML::XPath.liberal_match(element, xpath,
           FEED_TOOLS_NAMESPACES)
         if options[:select_result_value] && !results.nil? && !results.empty?
@@ -138,6 +131,8 @@ module FeedTools
         else
           return results
         end
+        
+        # Namespace unaware
         if options[:select_result_value] && !results.nil? && !results.empty?
           results =
             results.map { |x| x.respond_to?(:value) ? x.value : x.to_s }
@@ -166,6 +161,67 @@ module FeedTools
         end
       end
       return []
+    end
+    
+    # Runs through a list of XPath queries on an element or document and
+    # returns all non-empty results, appending the results from each query
+    # onto the end of the results from the previous queries.
+    def self.combine_xpaths_all(element, xpath_list, options={})
+      FeedTools::GenericHelper.validate_options([ :select_result_value ],
+                       options.keys)
+      options = { :select_result_value => false }.merge(options)
+
+      all_results = []
+      result = []
+      if element.nil?
+        return []
+      end
+      for xpath in xpath_list
+        # Namespace aware
+        results = REXML::XPath.liberal_match(element, xpath,
+          FEED_TOOLS_NAMESPACES)
+        if options[:select_result_value] && !results.nil? && !results.empty?
+          results =
+            results.map { |x| x.respond_to?(:value) ? x.value : x.to_s }
+        end
+        if results.blank?
+          results = REXML::XPath.liberal_match(element, xpath)
+        else
+          all_results.concat(results)
+          next
+        end
+
+        # Namespace unaware
+        if options[:select_result_value] && !results.nil? && !results.empty?
+          results =
+            results.map { |x| x.respond_to?(:value) ? x.value : x.to_s }
+        end
+        if !results.blank?
+          all_results.concat(results)
+          next
+        end
+      end
+      for xpath in xpath_list
+        if xpath =~ /^\w+$/
+          results = []
+          for child in element.children
+            if child.class == REXML::Element
+              if child.name.downcase == xpath.downcase
+                results << child
+              end
+            end
+          end
+          if options[:select_result_value] && !results.nil? && !results.empty?
+            results =
+              results.map { |x| x.inner_xml }
+          end
+          if !results.blank?
+            all_results.concat(results)
+            next
+          end
+        end
+      end
+      return all_results.uniq
     end
   end
 end
