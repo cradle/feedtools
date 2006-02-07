@@ -261,6 +261,9 @@ module FeedTools
           @content = FeedTools::HtmlHelper.strip_wrapper_element(@content)
         end
         if @content.blank?
+          @content = self.media_text
+        end
+        if @content.blank?
           @content = self.itunes_summary
         end
         if @content.blank?
@@ -309,6 +312,9 @@ module FeedTools
         if self.feed_type == "atom" ||
             FeedTools.configurations[:always_strip_wrapper_elements]
           @summary = FeedTools::HtmlHelper.strip_wrapper_element(@summary)
+        end
+        if @summary.blank?
+          @summary = self.media_text
         end
         if @summary.blank?
           @summary = self.itunes_summary
@@ -372,13 +378,15 @@ module FeedTools
     # Returns the contents of the media:text element
     def media_text
       if @media_text.nil?
-        @media_text = FeedTools::HtmlHelper.unescape_entities(XPath.first(root_node,
-          "itunes:subtitle/text()").to_s)
-        if @media_text == ""
-          @media_text = nil
-        end
-        unless @media_text.nil?
+        @media_text = FeedTools::XmlHelper.try_xpaths(self.root_node, [
+          "media:text/text()"
+        ], :select_result_value => true)
+        unless @media_text.blank?
+          @media_text = FeedTools::HtmlHelper.unescape_entities(@media_text)
           @media_text = FeedTools::HtmlHelper.sanitize_html(@media_text)
+          @media_text.strip!
+        else
+          @media_text = nil
         end
       end
       return @media_text

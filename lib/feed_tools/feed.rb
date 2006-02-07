@@ -1001,6 +1001,33 @@ module FeedTools
       @itunes_subtitle = new_itunes_subtitle
     end
 
+    # Returns the contents of the media:text element
+    def media_text
+      if @media_text.nil?
+        @media_text = FeedTools::XmlHelper.select_not_blank([
+          FeedTools::XmlHelper.try_xpaths(self.channel_node, [
+            "media:text/text()"
+          ], :select_result_value => true),
+          FeedTools::XmlHelper.try_xpaths(self.root_node, [
+            "media:text/text()"
+          ], :select_result_value => true)
+        ])
+        unless @media_text.blank?
+          @media_text = FeedTools::HtmlHelper.unescape_entities(@media_text)
+          @media_text = FeedTools::HtmlHelper.sanitize_html(@media_text)
+          @media_text.strip!
+        else
+          @media_text = nil
+        end
+      end
+      return @media_text
+    end
+
+    # Sets the contents of the media:text element
+    def media_text=(new_media_text)
+      @media_text = new_media_text
+    end
+
     # Returns the feed link
     def link
       if @link.nil?
@@ -1768,24 +1795,28 @@ module FeedTools
           if @time_to_live.nil?
             @time_to_live = 0
             update_frequency_days =
-              XPath.first(channel_node, "SCHEDULE/INTERVALTIME/@DAY").to_s
+              FeedTools::XmlHelper.try_xpaths(self.channel_node,
+              ["schedule/intervaltime/@day"], :select_result_value => true)
             update_frequency_hours =
-              XPath.first(channel_node, "schedule/intervaltime/@hour").to_s
+              FeedTools::XmlHelper.try_xpaths(self.channel_node,
+              ["schedule/intervaltime/@hour"], :select_result_value => true)
             update_frequency_minutes =
-              XPath.first(channel_node, "schedule/intervaltime/@min").to_s
+              FeedTools::XmlHelper.try_xpaths(self.channel_node,
+              ["schedule/intervaltime/@min"], :select_result_value => true)
             update_frequency_seconds =
-              XPath.first(channel_node, "schedule/intervaltime/@sec").to_s
-            if update_frequency_days != ""
+              FeedTools::XmlHelper.try_xpaths(self.channel_node,
+              ["schedule/intervaltime/@sec"], :select_result_value => true)
+            if !update_frequency_days.blank?
               @time_to_live = @time_to_live + update_frequency_days.to_i.day
             end
-            if update_frequency_hours != ""
+            if !update_frequency_hours.blank?
               @time_to_live = @time_to_live + update_frequency_hours.to_i.hour
             end
-            if update_frequency_minutes != ""
+            if !update_frequency_minutes.blank?
               @time_to_live = @time_to_live +
                 update_frequency_minutes.to_i.minute
             end
-            if update_frequency_seconds != ""
+            if !update_frequency_seconds.blank?
               @time_to_live = @time_to_live + update_frequency_seconds.to_i
             end
             if @time_to_live == 0
