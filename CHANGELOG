@@ -16,6 +16,7 @@
  * now correctly strips out wrapper div elements from text constructs
  * reorganized some of the helper modules
  * made some portions of url normalization case insensitive
+ * fixed issue with filename handling on Windows
 == FeedTools 0.2.22
  * fixed another atom generation error
 == FeedTools 0.2.21
