@@ -438,6 +438,11 @@ module FeedTools
         end
         @link = self.comments if @link.blank?
         @link = nil if @link.blank?
+        if !(@link =~ /^file:/) &&
+            !FeedTools::UriHelper.is_uri?(@link)
+          @link = FeedTools::UriHelper.resolve_relative_uri(
+            @link, [self.base_uri])
+        end
         if FeedTools.configurations[:url_normalization_enabled]
           @link = FeedTools::UriHelper.normalize_url(@link)
         end
@@ -473,7 +478,13 @@ module FeedTools
             "@href",
             "text()"
           ], :select_result_value => true)
-          # Resolve relative urls here
+          if !(link_object.href =~ /^file:/) &&
+              !FeedTools::UriHelper.is_uri?(link_object.href)
+            base_uri = self.feed.base_uri if self.feed != nil
+            link_object.href = FeedTools::UriHelper.resolve_relative_uri(
+              link_object.href,
+              [link_node.base_uri, base_uri])
+          end
           if FeedTools.configurations[:url_normalization_enabled]
             link_object.href =
               FeedTools::UriHelper.normalize_url(link_object.href)

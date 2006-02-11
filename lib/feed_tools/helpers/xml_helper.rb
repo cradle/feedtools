@@ -30,15 +30,27 @@ module FeedTools
   module XmlHelper    
     # Selects the first non-blank result.
     def self.select_not_blank(results, &block)
-      for result in results
+      if results.kind_of? Array
+        for result in results
+          blank_result = false
+          if !block.nil?
+            blank_result = block.call(result)
+          else
+            blank_result = result.to_s.blank?
+          end
+          unless result.nil? || blank_result
+            return result
+          end
+        end
+      else
         blank_result = false
         if !block.nil?
-          blank_result = block.call(result)
+          blank_result = block.call(results)
         else
-          blank_result = result.to_s.blank?
+          blank_result = results.to_s.blank?
         end
-        unless result.nil? || blank_result
-          return result
+        unless results.nil? || blank_result
+          return results
         end
       end
       return nil

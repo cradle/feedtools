@@ -115,6 +115,19 @@ module FeedTools
       return normalized_url
     end
 
+    # Resolves a relative uri
+    def self.resolve_relative_uri(relative_uri, base_uri_sources=[])
+      return relative_uri if base_uri_sources.blank?
+      begin
+        base_uri = URI.parse(
+          FeedTools::XmlHelper.select_not_blank(base_uri_sources))
+        resolved_uri = base_uri + relative_uri
+        return FeedTools::UriHelper.normalize_url(resolved_uri.to_s)
+      rescue
+        return relative_uri
+      end
+    end
+
     # Converts a url into a tag uri
     def self.build_tag_uri(url, date)
       unless url.kind_of? String

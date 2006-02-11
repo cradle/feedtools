@@ -1071,6 +1071,11 @@ module FeedTools
           @link = FeedTools::HtmlHelper.unescape_entities(@link)
         end
         @link = nil if @link.blank?
+        if !(@link =~ /^file:/) &&
+            !FeedTools::UriHelper.is_uri?(@link)
+          @link = FeedTools::UriHelper.resolve_relative_uri(
+            @link, [self.base_uri])
+        end
         if FeedTools.configurations[:url_normalization_enabled]
           @link = FeedTools::UriHelper.normalize_url(@link)
         end
@@ -1112,7 +1117,12 @@ module FeedTools
             "@href",
             "text()"
           ], :select_result_value => true)
-          # Resolve relative urls here
+          if !(link_object.href =~ /^file:/) &&
+              !FeedTools::UriHelper.is_uri?(link_object.href)
+            link_object.href = FeedTools::UriHelper.resolve_relative_uri(
+              link_object.href,
+              [link_node.base_uri, self.base_uri])
+          end
           if FeedTools.configurations[:url_normalization_enabled]
             link_object.href =
               FeedTools::UriHelper.normalize_url(link_object.href)
