@@ -45,9 +45,14 @@ module FeedTools
     # The author's email address
     attr_accessor :email
     # The url of the author's homepage
-    attr_accessor :url
+    attr_accessor :href
     # The raw value of the author tag if present
     attr_accessor :raw
+
+    alias_method :url, :href
+    alias_method :url=, :href=
+    alias_method :uri, :href
+    alias_method :uri=, :href=
   end
 
   # Represents a feed's image
@@ -57,8 +62,8 @@ module FeedTools
     attr_accessor :title
     # The image's description
     attr_accessor :description
-    # The image's url
-    attr_accessor :url
+    # The url of the image that is being linked to
+    attr_accessor :href
     # The url to link the image to
     attr_accessor :link
     # The width of the image
@@ -68,6 +73,9 @@ module FeedTools
     # The style of the image
     # Possible values are "icon", "image", or "image-wide"
     attr_accessor :style
+
+    alias_method :url, :href
+    alias_method :url=, :href=
   end
 
   # Represents a feed's text input element.

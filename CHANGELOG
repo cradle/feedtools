@@ -14,6 +14,7 @@
  * added support for xhtml:div elements
  * dc:date now preempts pubDate
  * now correctly strips out wrapper div elements from text constructs
+ * fixed issue with some atom links being incorrectly identified as images
  * reorganized some of the helper modules
  * made some portions of url normalization case insensitive
  * fixed issue with filename handling on Windows

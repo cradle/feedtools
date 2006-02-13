@@ -482,20 +482,25 @@ module FeedTools
             "@href",
             "text()"
           ], :select_result_value => true)
-          if !(link_object.href =~ /^file:/) &&
-              !FeedTools::UriHelper.is_uri?(link_object.href)
-            stored_base_uri =
-              FeedTools::GenericHelper.recursion_trap(:feed_link) do
-                self.feed.base_uri if self.feed != nil
-              end
-            link_object.href = FeedTools::UriHelper.resolve_relative_uri(
-              link_object.href,
-              [link_node.base_uri, stored_base_uri])
+          begin
+            if !(link_object.href =~ /^file:/) &&
+                !FeedTools::UriHelper.is_uri?(link_object.href)
+              stored_base_uri =
+                FeedTools::GenericHelper.recursion_trap(:feed_link) do
+                  self.feed.base_uri if self.feed != nil
+                end
+              link_object.href = FeedTools::UriHelper.resolve_relative_uri(
+                link_object.href,
+                [link_node.base_uri, stored_base_uri])
+            end
+          rescue
           end
           if FeedTools.configurations[:url_normalization_enabled]
             link_object.href =
               FeedTools::UriHelper.normalize_url(link_object.href)
           end
+          link_object.href.strip! unless link_object.href.nil?
+          next if link_object.href.blank?
           link_object.hreflang = FeedTools::XmlHelper.try_xpaths(link_node, [
             "@atom10:hreflang",
             "@atom03:hreflang",

@@ -817,6 +817,7 @@ module FeedTools
     # Returns the feed url.
     def url
       original_url = @url
+      
       override_url = lambda do |result|
         begin
           if result.nil? && self.feed_data != nil
@@ -835,6 +836,7 @@ module FeedTools
           true
         end
       end
+      
       if override_url.call(@url)
         # rdf:about is ordered last because a lot of people accidentally
         # put the link in that field instead of the url to the feed.
@@ -1073,12 +1075,8 @@ module FeedTools
         @link = nil if @link.blank?
         if !(@link =~ /^file:/) &&
             !FeedTools::UriHelper.is_uri?(@link)
-          stored_base_uri =
-            FeedTools::GenericHelper.recursion_trap(:feed_link) do
-              self.base_uri
-            end
           @link = FeedTools::UriHelper.resolve_relative_uri(
-            @link, stored_base_uri)
+            @link, self.base_uri)
         end
         if FeedTools.configurations[:url_normalization_enabled]
           @link = FeedTools::UriHelper.normalize_url(@link)
@@ -1121,20 +1119,21 @@ module FeedTools
             "@href",
             "text()"
           ], :select_result_value => true)
-          if !(link_object.href =~ /^file:/) &&
-              !FeedTools::UriHelper.is_uri?(link_object.href)
-            stored_base_uri =
-              FeedTools::GenericHelper.recursion_trap(:feed_links) do
-                self.base_uri
-              end            
-            link_object.href = FeedTools::UriHelper.resolve_relative_uri(
-              link_object.href,
-              [link_node.base_uri, stored_base_uri])
+          begin
+            if !(link_object.href =~ /^file:/) &&
+                !FeedTools::UriHelper.is_uri?(link_object.href)
+              link_object.href = FeedTools::UriHelper.resolve_relative_uri(
+                link_object.href,
+                [link_node.base_uri, self.base_uri])
+            end
+          rescue
           end
           if FeedTools.configurations[:url_normalization_enabled]
             link_object.href =
               FeedTools::UriHelper.normalize_url(link_object.href)
           end
+          link_object.href.strip! unless link_object.href.nil?
+          next if link_object.href.blank?
           link_object.hreflang = FeedTools::XmlHelper.try_xpaths(link_node, [
             "@atom10:hreflang",
             "@atom03:hreflang",
@@ -1215,11 +1214,17 @@ module FeedTools
         end
         if !@base_uri.blank?
           @base_uri = FeedTools::UriHelper.normalize_url(@base_uri)
-        elsif self.url != nil && self.url =~ /^http/
-          @base_uri = FeedTools::UriHelper.normalize_url(
-            URI.parse(self.url).host)
         else
-          @base_uri = nil
+          feed_url =
+            FeedTools::GenericHelper.recursion_trap(:feed_base_uri) do
+              self.url
+            end
+          if feed_url != nil && feed_url =~ /^http/
+            @base_uri = FeedTools::UriHelper.normalize_url(
+              URI.parse(feed_url).host)
+          else
+            @base_uri = nil
+          end
         end
       end
       return @base_uri
@@ -1641,41 +1646,24 @@ module FeedTools
     def images
       if @images.nil?
         @images = []
-        image_nodes = FeedTools::XmlHelper.try_xpaths_all(self.channel_node, [
-          "image",
-          "logo",
-          "apple-wallpapers:image",
-          "atom10:link",
-          "atom03:link",
-          "atom:link",
-          "link"
-        ])
+        image_nodes = FeedTools::XmlHelper.combine_xpaths_all(
+          self.channel_node, [
+            "image",
+            "logo",
+            "apple-wallpapers:image"
+          ]
+        )
         unless image_nodes.blank?
           for image_node in image_nodes
             image = FeedTools::Image.new
-            image.url = FeedTools::XmlHelper.try_xpaths(image_node, [
+            image.href = FeedTools::XmlHelper.try_xpaths(image_node, [
               "url/text()",
               "@rdf:resource",
+              "@href",
+              "@url",
               "text()"
             ], :select_result_value => true)
-            if image.url.blank? && (image_node.name == "logo" ||
-                (image_node.attributes['type'].to_s =~ /^image/) == 0)
-              image.url = FeedTools::XmlHelper.try_xpaths(image_node, [
-                "@atom10:href",
-                "@atom03:href",
-                "@atom:href",
-                "@href"
-              ], :select_result_value => true)
-              if image.url == self.link && image.url != nil
-                image.url = nil
-              end
-            end
-            if image.url.blank? && image_node.name == "LOGO"
-              image.url = FeedTools::XmlHelper.try_xpaths(image_node, [
-                "@href"
-              ], :select_result_value => true)
-            end
-            image.url.strip! unless image.url.nil?
+            image.href.strip! unless image.href.nil?
             image.title = FeedTools::XmlHelper.try_xpaths(image_node,
               ["title/text()"], :select_result_value => true)
             image.title.strip! unless image.title.nil?
@@ -1697,7 +1685,15 @@ module FeedTools
             ], :select_result_value => true)
             image.style.strip! unless image.style.nil?
             image.style.downcase! unless image.style.nil?
-            @images << image unless image.url.nil?
+            @images << image unless image.href.nil?
+          end
+        end
+        for link_object in self.links
+          if link_object.type != nil && link_object.type =~ /^image/
+            image = FeedTools::Image.new
+            image.href = link_object.href
+            image.title = link_object.title
+            @images << image unless image.href.nil?
           end
         end
       end
