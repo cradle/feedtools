@@ -440,8 +440,12 @@ module FeedTools
         @link = nil if @link.blank?
         if !(@link =~ /^file:/) &&
             !FeedTools::UriHelper.is_uri?(@link)
+          stored_base_uri =
+            FeedTools::GenericHelper.recursion_trap(:feed_link) do
+              self.feed.base_uri if self.feed != nil
+            end
           @link = FeedTools::UriHelper.resolve_relative_uri(
-            @link, [self.base_uri])
+            @link, stored_base_uri)
         end
         if FeedTools.configurations[:url_normalization_enabled]
           @link = FeedTools::UriHelper.normalize_url(@link)
@@ -480,10 +484,13 @@ module FeedTools
           ], :select_result_value => true)
           if !(link_object.href =~ /^file:/) &&
               !FeedTools::UriHelper.is_uri?(link_object.href)
-            base_uri = self.feed.base_uri if self.feed != nil
+            stored_base_uri =
+              FeedTools::GenericHelper.recursion_trap(:feed_link) do
+                self.feed.base_uri if self.feed != nil
+              end
             link_object.href = FeedTools::UriHelper.resolve_relative_uri(
               link_object.href,
-              [link_node.base_uri, base_uri])
+              [link_node.base_uri, stored_base_uri])
           end
           if FeedTools.configurations[:url_normalization_enabled]
             link_object.href =
