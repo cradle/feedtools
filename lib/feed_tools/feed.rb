@@ -2083,6 +2083,8 @@ module FeedTools
         @entries = @entries.sort do |a, b|
           eval("a.#{sorting_property}") <=> eval("b.#{sorting_property}")
         end
+      else
+        @entries = @entries.reverse
       end
       return @entries
     end
