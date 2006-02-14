@@ -424,7 +424,9 @@ module FeedTools
         end
         if @link.blank?
           @link = FeedTools::XmlHelper.try_xpaths(self.root_node, [
-            "@href"
+            "@href",
+            "@rdf:about",
+            "@about"
           ], :select_result_value => true)
         end
         if @link.blank?
@@ -482,6 +484,9 @@ module FeedTools
             "@href",
             "text()"
           ], :select_result_value => true)
+          if link_object.href.nil? && link_node.base_uri != nil
+            link_object.href = ""
+          end
           begin
             if !(link_object.href =~ /^file:/) &&
                 !FeedTools::UriHelper.is_uri?(link_object.href)

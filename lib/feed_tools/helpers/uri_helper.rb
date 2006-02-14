@@ -118,10 +118,11 @@ module FeedTools
     # Resolves a relative uri
     def self.resolve_relative_uri(relative_uri, base_uri_sources=[])
       return relative_uri if base_uri_sources.blank?
+      return nil if relative_uri.nil?
       begin
         base_uri = URI.parse(
           FeedTools::XmlHelper.select_not_blank(base_uri_sources))
-        resolved_uri = base_uri + relative_uri
+        resolved_uri = base_uri + relative_uri.to_s
         return FeedTools::UriHelper.normalize_url(resolved_uri.to_s)
       rescue
         return relative_uri

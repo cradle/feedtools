@@ -816,52 +816,83 @@ module FeedTools
   
     # Returns the feed url.
     def url
-      original_url = @url
+      if @url_overridden != true
+        original_url = @url
       
-      override_url = lambda do |result|
-        begin
-          if result.nil? && self.feed_data != nil
-            true
-          elsif result != nil &&
-              !(["http", "https"].include?(URI.parse(result.to_s).scheme))
-            if self.feed_data != nil
+        override_url = lambda do |current_url|
+          begin
+            if current_url.nil? && self.feed_data != nil
+              # The current url is nil and we have feed data to go on
               true
+            elsif current_url != nil && !(["http", "https"].include?(
+                URI.parse(current_url.to_s).scheme))
+              if self.feed_data != nil
+                # The current url is set, but isn't a http/https url and
+                # we have feed data to use to replace the current url with
+                true
+              else
+                # The current url is set, but isn't a http/https url but
+                # we don't have feed data to use to replace the current url
+                # with so we'll have to wait until we do
+                false
+              end
             else
+              # The current url is set to an http/https url and there's
+              # no compelling reason to override it
               false
             end
-          else
-            false
+          rescue
+            # Something went wrong, so we should err on the side of caution
+            # and attempt to override the url
+            true
           end
-        rescue
-          true
         end
-      end
-      
-      if override_url.call(@url)
-        # rdf:about is ordered last because a lot of people accidentally
-        # put the link in that field instead of the url to the feed.
-        # Ordering it last gives them as many chances as humanly possible
-        # for them to redeem themselves.  If the link turns out to be the
-        @url = FeedTools::XmlHelper.try_xpaths(self.channel_node, [
-          "atom10:link[@rel='self']/@href",
-          "atom03:link[@rel='self']/@href",
-          "atom:link[@rel='self']/@href",
-          "link[@rel='self']/@href",
-          "admin:feed/@rdf:resource",
-          "admin:feed/@resource",
-          "feed/@rdf:resource",
-          "feed/@resource",
-          "@rdf:about",
-          "@about"
-        ], :select_result_value => true) do |result|
-          override_url.call(FeedTools::UriHelper.normalize_url(result))
-        end
-        @url = FeedTools::UriHelper.normalize_url(@url)
-        if @url == nil
-          @url = original_url
-        end
-        if @url == self.link
-          @url = original_url
+#        if override_url.call(@url)
+if true
+          # rdf:about is ordered last because a lot of people put the url to
+          # the feed inside it instead of a link to their blog.
+          # Ordering it last gives them as many chances as humanly possible
+          # for them to redeem themselves.  If the link turns out to be the
+          # same as the blog link, it will be reset to the original value.
+          for link_object in self.links
+            if link_object.type == 'self'
+              if link_object.href != self.link
+                @url = link_object.href
+                puts "Link Found: #{@url}"
+                @url_overridden = true
+                return @url
+              end
+            end
+          end
+          @url = FeedTools::XmlHelper.try_xpaths(self.channel_node, [
+            "admin:feed/@rdf:resource",
+            "admin:feed/@resource",
+            "feed/@rdf:resource",
+            "feed/@resource",
+            "@rdf:about",
+            "@about"
+          ], :select_result_value => true) do |result|
+            override_url.call(FeedTools::UriHelper.normalize_url(result))
+          end
+          if !(@url =~ /^file:/) &&
+              !FeedTools::UriHelper.is_uri?(@url)
+            @url = FeedTools::UriHelper.resolve_relative_uri(
+              @url, [self.base_uri])
+          end
+          if FeedTools.configurations[:url_normalization_enabled]
+            @url = FeedTools::UriHelper.normalize_url(@url)
+          end            
+          @url.strip! unless @url.nil?
+          @url = nil if @url.blank?
+          @url_overridden = true
+          if @url == nil
+            @url = original_url
+            @url_overridden = false
+          end
+          if @url == self.link
+            @url = original_url
+            @url_overridden = false
+          end
         end
       end
       return @url
@@ -1060,7 +1091,9 @@ module FeedTools
         end
         if @link.blank?
           @link = FeedTools::XmlHelper.try_xpaths(self.channel_node, [
-            "@href"
+            "@href",
+            "@rdf:about",
+            "@about"
           ], :select_result_value => true)
         end
         if @link.blank?
@@ -1098,7 +1131,7 @@ module FeedTools
     
     # Returns the links collection
     def links
-      if @links.nil?
+      if @links.blank?
         @links = []
         link_nodes =
           FeedTools::XmlHelper.combine_xpaths_all(self.channel_node, [
@@ -1119,6 +1152,9 @@ module FeedTools
             "@href",
             "text()"
           ], :select_result_value => true)
+          if link_object.href.nil? && link_node.base_uri != nil
+            link_object.href = ""
+          end
           begin
             if !(link_object.href =~ /^file:/) &&
                 !FeedTools::UriHelper.is_uri?(link_object.href)
@@ -1663,7 +1699,16 @@ module FeedTools
               "@url",
               "text()"
             ], :select_result_value => true)
+            if !(image.href =~ /^file:/) &&
+                !FeedTools::UriHelper.is_uri?(image.href)
+              image.href = FeedTools::UriHelper.resolve_relative_uri(
+                image.href, [image_node.base_uri, self.base_uri])
+            end
+            if FeedTools.configurations[:url_normalization_enabled]
+              image.href = FeedTools::UriHelper.normalize_url(image.href)
+            end            
             image.href.strip! unless image.href.nil?
+            next if image.href.blank?
             image.title = FeedTools::XmlHelper.try_xpaths(image_node,
               ["title/text()"], :select_result_value => true)
             image.title.strip! unless image.title.nil?
