@@ -816,7 +816,7 @@ module FeedTools
   
     # Returns the feed url.
     def url
-      if @url_overridden != true
+      if @url_overridden != true || @url.nil?
         original_url = @url
       
         override_url = lambda do |current_url|
@@ -847,18 +847,16 @@ module FeedTools
             true
           end
         end
-#        if override_url.call(@url)
-if true
+        if override_url.call(@url) && self.feed_data != nil
           # rdf:about is ordered last because a lot of people put the url to
           # the feed inside it instead of a link to their blog.
           # Ordering it last gives them as many chances as humanly possible
           # for them to redeem themselves.  If the link turns out to be the
           # same as the blog link, it will be reset to the original value.
           for link_object in self.links
-            if link_object.type == 'self'
+            if link_object.rel == 'self'
               if link_object.href != self.link
                 @url = link_object.href
-                puts "Link Found: #{@url}"
                 @url_overridden = true
                 return @url
               end
