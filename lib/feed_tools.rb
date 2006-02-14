@@ -189,6 +189,7 @@ module FeedTools
         :always_strip_wrapper_elements => true,
         :timestamp_estimation_enabled => true,
         :url_normalization_enabled => true,
+        :entry_sorting_property => "time",
         :strip_comment_count => false,
         :tab_spaces => 2,
         :max_ttl => 3.days.to_s,

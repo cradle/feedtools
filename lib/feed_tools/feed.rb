@@ -2074,8 +2074,15 @@ module FeedTools
       end
     
       # Sort the items
-      @entries = @entries.sort do |a, b|
-        (b.time or Time.utc(1970)) <=> (a.time or Time.utc(1970))
+      if FeedTools.configurations[:entry_sorting_property] == "time"
+        @entries = @entries.sort do |a, b|
+          (b.time or Time.utc(1970)) <=> (a.time or Time.utc(1970))
+        end
+      elsif FeedTools.configurations[:entry_sorting_property] != nil
+        sorting_property = FeedTools.configurations[:entry_sorting_property]
+        @entries = @entries.sort do |a, b|
+          eval("a.#{sorting_property}") <=> eval("b.#{sorting_property}")
+        end
       end
       return @entries
     end

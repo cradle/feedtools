@@ -7,6 +7,8 @@
  * fixed bug with feed merging referencing a method that was refactored
  * no longer dies if uuidtools gem is missing but the UUID class is defined
  * updated timestamp handling and generation
+ * added support for entry sorting on any feed item field
+ * added support for disabling entry sorting entirely
  * fixed issue with itunes categories
  * fixed itunes subtitle/summary
  * fixed entry assignment bug
