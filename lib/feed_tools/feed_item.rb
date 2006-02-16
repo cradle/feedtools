@@ -1531,12 +1531,12 @@ module FeedTools
           "date/text()"
         ], :select_result_value => true)
         if !published_string.blank?
-          @issued = Time.parse(published_string).gmtime rescue nil
+          @published = Time.parse(published_string).gmtime rescue nil
         else
-          @issued = nil
+          @published = nil
         end
       end
-      return @issued
+      return @published
     end
     
     # Sets the feed item published time

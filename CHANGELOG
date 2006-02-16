@@ -12,6 +12,7 @@
  * fixed issue with itunes categories
  * fixed itunes subtitle/summary
  * fixed entry assignment bug
+ * fixed issued/published variable name mix-up
  * added support for the payload module
  * added support for xhtml:div elements
  * dc:date now preempts pubDate
