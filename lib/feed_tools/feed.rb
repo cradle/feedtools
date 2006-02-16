@@ -2488,5 +2488,10 @@ module FeedTools
     def inspect
       return "#<FeedTools::Feed:0x#{self.object_id.to_s(16)} URL:#{self.url}>"
     end
+    
+    # Allows sorting feeds by title
+    def <=>(other_feed)
+      return self.title.to_s <=> other_feed.title.to_s
+    end
   end
 end
