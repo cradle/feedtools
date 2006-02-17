@@ -31,7 +31,7 @@ module FeedTools
   # The default caching mechanism for the FeedTools module
   class DatabaseFeedCache < ActiveRecord::Base
     # Overrides the default table name to use the "feeds" table.
-    def self.table_name() "feeds" end
+    def self.table_name() "cached_feeds" end
   
     # If ActiveRecord is not already connected, attempts to find a configuration file and use
     # it to open a connection for ActiveRecord.
@@ -109,7 +109,7 @@ module FeedTools
     # True if the appropriate database table already exists
     def DatabaseFeedCache.table_exists?
       begin
-        ActiveRecord::Base.connection.execute "select id, url, title, " +
+        ActiveRecord::Base.connection.execute "select id, href, title, " +
           "link, feed_data, feed_data_type, http_headers, last_retrieved " +
           "from #{self.table_name()} limit 1"
       rescue ActiveRecord::StatementInvalid

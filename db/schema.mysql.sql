@@ -1,7 +1,7 @@
 -- Example MySQL schema
   CREATE TABLE `feeds` (
     `id`              int(10) unsigned NOT NULL auto_increment,
-    `url`             varchar(255) default NULL,
+    `href`            varchar(255) default NULL,
     `title`           varchar(255) default NULL,
     `link`            varchar(255) default NULL,
     `feed_data`       longtext default NULL,

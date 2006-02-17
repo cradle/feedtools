@@ -1,7 +1,7 @@
 -- Example PostgreSQL schema
   CREATE TABLE feeds (
     id                SERIAL PRIMARY KEY NOT NULL,
-    url               varchar(255) default NULL,
+    href              varchar(255) default NULL,
     title             varchar(255) default NULL,
     link              varchar(255) default NULL,
     feed_data         text default NULL,

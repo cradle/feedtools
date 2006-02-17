@@ -64,7 +64,7 @@ class CacheTest < Test::Unit::TestCase
       assert_equal(false, slashdot_feed.url.blank?)
       FeedTools::Feed.open(slashdot_feed.url)
     
-      entries = FeedTools::DatabaseFeedCache.find_all_by_url(slashdot_feed.url)
+      entries = FeedTools::DatabaseFeedCache.find_all_by_href(slashdot_feed.url)
       assert_equal(1, entries.size)
     rescue FeedTools::FeedAccessError
     end

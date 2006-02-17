@@ -41,7 +41,7 @@ module FeedTools
       @feed_data_type = :xml
       @root_node = nil
       @channel_node = nil
-      @url = nil
+      @href = nil
       @id = nil
       @title = nil
       @description = nil
@@ -73,7 +73,7 @@ module FeedTools
 
       # create and load the new feed
       feed = FeedTools::Feed.new
-      feed.url = url
+      feed.href = url
       feed.update! unless options[:cache_only]
       return feed
     end
@@ -118,7 +118,7 @@ module FeedTools
           end
           unless autodiscovered_url.nil?
             self.feed_data = nil
-            self.url = autodiscovered_url
+            self.href = autodiscovered_url
             self.expire! unless self.cache_object.nil?
             self.update!
           end
@@ -137,20 +137,20 @@ module FeedTools
         @http_headers = YAML.load(self.cache_object.http_headers)
       end
     
-      if (self.url =~ /^feed:/) == 0
+      if (self.href =~ /^feed:/) == 0
         # Woah, Nelly, how'd that happen?  You should've already been
         # corrected.  So let's fix that url.  And please,
         # just use less crappy browsers instead of badly defined
         # pseudo-protocol hacks.
-        self.url = FeedTools::UriHelper.normalize_url(self.url)
+        self.href = FeedTools::UriHelper.normalize_url(self.href)
       end
     
       # Find out what method we're going to be using to obtain this feed.
       begin
-        uri = URI.parse(self.url)
+        uri = URI.parse(self.href)
       rescue URI::InvalidURIError
         raise FeedAccessError,
-          "Cannot retrieve feed using invalid URL: " + self.url.to_s
+          "Cannot retrieve feed using invalid URL: " + self.href.to_s
       end
       retrieval_method = "http"
       case uri.scheme
@@ -215,7 +215,7 @@ module FeedTools
                   if redirected_response.last.code.to_i == 301
                     # Reset the cache object or we may get duplicate entries
                     self.cache_object = nil
-                    self.url = redirected_response.last['location']
+                    self.href = redirected_response.last['location']
                   else
                     # Jump out as soon as we hit anything that isn't a
                     # permanently moved redirection.
@@ -249,7 +249,7 @@ module FeedTools
                       if !cached_feed.expired? &&
                           !cached_feed.http_headers.blank?
                         # Copy the cached state
-                        self.url = cached_feed.url
+                        self.href = cached_feed.href
 
                         @feed_data = cached_feed.feed_data
                         @feed_data_type = cached_feed.feed_data_type
@@ -305,7 +305,7 @@ module FeedTools
       
         begin
           begin
-            @http_response = http_fetch.call(self.url, headers, 10, [], false)
+            @http_response = http_fetch.call(self.href, headers, 10, [], false)
           rescue => error
             if error.respond_to?(:response)
               # You might not believe this, but...
@@ -319,7 +319,7 @@ module FeedTools
               # configuration files.
               if error.response.code.to_i == 404 &&
                   FeedTools.user_agent != nil
-                @http_response = http_fetch.call(self.url, {}, 10, [], true)
+                @http_response = http_fetch.call(self.href, {}, 10, [], true)
                 if @http_response != nil && @http_response.code.to_i == 200
                   warn("The server appears to be blocking based on the " +
                     "User-Agent header.  This is stupid, and you should " +
@@ -405,7 +405,7 @@ module FeedTools
       elsif retrieval_method == "file"
         # Now that we've gone to all that trouble to ensure the url begins
         # with 'file://', strip the 'file://' off the front of the url.
-        file_name = self.url.gsub(/^file:\/\//, "")
+        file_name = self.href.gsub(/^file:\/\//, "")
         if RUBY_PLATFORM =~ /mswin/
           file_name = file_name[1..-1] if file_name[1..1] == "/"
         end
@@ -650,14 +650,19 @@ module FeedTools
   
     # The cache object that handles the feed persistence.
     def cache_object
-      if !@url.nil? && @url =~ /^file:\/\//
+      if !@href.nil? && @href =~ /^file:\/\//
         return nil
       end
       unless FeedTools.feed_cache.nil?
         if @cache_object.nil?
           begin
-            if @url != nil
-              @cache_object = FeedTools.feed_cache.find_by_url(@url)
+            if @href != nil
+              begin
+                @cache_object = FeedTools.feed_cache.find_by_href(@href)
+              rescue
+                warn("The feed cache seems to be having trouble with the " +
+                  "find_by_href method.  This may cause unexpected results.")
+              end
             end
             if @cache_object.nil?
               @cache_object = FeedTools.feed_cache.new
@@ -672,8 +677,8 @@ module FeedTools
     # Sets the cache object for this feed.
     #
     # This can be any object, but it must accept the following messages:
-    # url
-    # url=
+    # href
+    # href=
     # title
     # title=
     # link
@@ -815,17 +820,17 @@ module FeedTools
     end
   
     # Returns the feed url.
-    def url
-      if @url_overridden != true || @url.nil?
-        original_url = @url
+    def href
+      if @href_overridden != true || @href.nil?
+        original_href = @href
       
-        override_url = lambda do |current_url|
+        override_href = lambda do |current_href|
           begin
-            if current_url.nil? && self.feed_data != nil
+            if current_href.nil? && self.feed_data != nil
               # The current url is nil and we have feed data to go on
               true
-            elsif current_url != nil && !(["http", "https"].include?(
-                URI.parse(current_url.to_s).scheme))
+            elsif current_href != nil && !(["http", "https"].include?(
+                URI.parse(current_href.to_s).scheme))
               if self.feed_data != nil
                 # The current url is set, but isn't a http/https url and
                 # we have feed data to use to replace the current url with
@@ -847,7 +852,7 @@ module FeedTools
             true
           end
         end
-        if override_url.call(@url) && self.feed_data != nil
+        if override_href.call(@href) && self.feed_data != nil
           # rdf:about is ordered last because a lot of people put the url to
           # the feed inside it instead of a link to their blog.
           # Ordering it last gives them as many chances as humanly possible
@@ -856,13 +861,13 @@ module FeedTools
           for link_object in self.links
             if link_object.rel == 'self'
               if link_object.href != self.link
-                @url = link_object.href
-                @url_overridden = true
-                return @url
+                @href = link_object.href
+                @href_overridden = true
+                return @href
               end
             end
           end
-          @url = FeedTools::XmlHelper.try_xpaths(self.channel_node, [
+          @href = FeedTools::XmlHelper.try_xpaths(self.channel_node, [
             "admin:feed/@rdf:resource",
             "admin:feed/@resource",
             "feed/@rdf:resource",
@@ -870,36 +875,36 @@ module FeedTools
             "@rdf:about",
             "@about"
           ], :select_result_value => true) do |result|
-            override_url.call(FeedTools::UriHelper.normalize_url(result))
+            override_href.call(FeedTools::UriHelper.normalize_url(result))
           end
-          if !(@url =~ /^file:/) &&
-              !FeedTools::UriHelper.is_uri?(@url)
-            @url = FeedTools::UriHelper.resolve_relative_uri(
-              @url, [self.base_uri])
+          if !(@href =~ /^file:/) &&
+              !FeedTools::UriHelper.is_uri?(@href)
+            @href = FeedTools::UriHelper.resolve_relative_uri(
+              @href, [self.base_uri])
           end
           if FeedTools.configurations[:url_normalization_enabled]
-            @url = FeedTools::UriHelper.normalize_url(@url)
+            @href = FeedTools::UriHelper.normalize_url(@href)
           end            
-          @url.strip! unless @url.nil?
-          @url = nil if @url.blank?
-          @url_overridden = true
-          if @url == nil
-            @url = original_url
-            @url_overridden = false
+          @href.strip! unless @href.nil?
+          @href = nil if @href.blank?
+          @href_overridden = true
+          if @href == nil
+            @href = original_href
+            @href_overridden = false
           end
-          if @url == self.link
-            @url = original_url
-            @url_overridden = false
+          if @href == self.link
+            @href = original_href
+            @href_overridden = false
           end
         end
       end
-      return @url
+      return @href
     end
   
     # Sets the feed url and prepares the cache_object if necessary.
-    def url=(new_url)
-      @url = FeedTools::UriHelper.normalize_url(new_url)
-      self.cache_object.url = new_url unless self.cache_object.nil?
+    def href=(new_href)
+      @href = FeedTools::UriHelper.normalize_url(new_href)
+      self.cache_object.href = new_href unless self.cache_object.nil?
     end
   
     # Returns the feed title
@@ -1251,7 +1256,7 @@ module FeedTools
         else
           feed_url =
             FeedTools::GenericHelper.recursion_trap(:feed_base_uri) do
-              self.url
+              self.href
             end
           if feed_url != nil && feed_url =~ /^http/
             @base_uri = FeedTools::UriHelper.normalize_url(
@@ -1312,10 +1317,10 @@ module FeedTools
           rescue
             @favicon = nil
           end
-          if @favicon.nil? && !self.url.blank?
+          if @favicon.nil? && !self.href.blank?
             begin
               feed_uri = URI.parse(
-                FeedTools::UriHelper.normalize_url(self.url))
+                FeedTools::UriHelper.normalize_url(self.href))
               if feed_uri.scheme == "http"
                 @favicon =
                   "http://" + feed_uri.host + "/favicon.ico"
@@ -1413,7 +1418,7 @@ module FeedTools
                 "atom03:uri/text()",
                 "atom:uri/text()",
                 "uri/text()",
-                "@url",
+                "@href",
                 "@uri",
                 "@href"
               ], :select_result_value => true)
@@ -1694,7 +1699,7 @@ module FeedTools
               "url/text()",
               "@rdf:resource",
               "@href",
-              "@url",
+              "@href",
               "text()"
             ], :select_result_value => true)
             if !(image.href =~ /^file:/) &&
@@ -2367,8 +2372,8 @@ module FeedTools
               xml_builder.uri(self.author.url)
             end
           end
-          unless self.url.blank?
-            xml_builder.link("href" => self.url,
+          unless self.href.blank?
+            xml_builder.link("href" => self.href,
                 "rel" => "self",
                 "type" => "application/atom+xml")
           end
@@ -2427,15 +2432,15 @@ module FeedTools
 
     # Persists the current feed state to the cache.
     def save
-      unless self.url =~ /^file:\/\//
+      unless self.href =~ /^file:\/\//
         if FeedTools.feed_cache.nil?
           raise "Caching is currently disabled.  Cannot save to cache."
-        elsif self.url.nil?
+        elsif self.href.nil?
           raise "The url field must be set to save to the cache."
         elsif self.cache_object.nil?
           raise "The cache_object is currently nil.  Cannot save to cache."
         else
-          self.cache_object.url = self.url
+          self.cache_object.href = self.href
           unless self.feed_data.nil?
             self.cache_object.title = self.title
             self.cache_object.link = self.link
@@ -2448,7 +2453,9 @@ module FeedTools
         end
       end
     end
-  
+
+    alias_method :url, :href
+    alias_method :url=, :href=  
     alias_method :tagline, :subtitle
     alias_method :tagline=, :subtitle=
     alias_method :description, :subtitle
@@ -2486,7 +2493,7 @@ module FeedTools
   
     # Returns a simple representation of the feed object's state.
     def inspect
-      return "#<FeedTools::Feed:0x#{self.object_id.to_s(16)} URL:#{self.url}>"
+      return "#<FeedTools::Feed:0x#{self.object_id.to_s(16)} URL:#{self.href}>"
     end
     
     # Allows sorting feeds by title

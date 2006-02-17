@@ -1,6 +1,8 @@
 == FeedTools 0.2.23
  * autodiscovery implemented
  * now knows a title from a hole in the ground
+ * changed default table name to "cached_feeds" to avoid name collisions
+ * schema now uses "href" instead of "url"
  * feed cache is set to nil by default now
  * both summary and content elements are generated now
  * now supports proxies
