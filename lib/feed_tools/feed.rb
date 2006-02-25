@@ -2386,9 +2386,7 @@ module FeedTools
             xml_builder.link(
               "href" =>
                 FeedTools::HtmlHelper.escape_entities(self.link),
-              "rel" => "alternate",
-              "title" => FeedTools::HtmlHelper.escape_entities(
-                FeedTools::HtmlHelper.convert_html_to_plain_text(self.title)))
+              "rel" => "alternate")
           end
           unless self.subtitle.blank?
             xml_builder.subtitle(self.subtitle,
