@@ -1717,7 +1717,7 @@ module FeedTools
         return xml_builder.item("rdf:about" =>
             FeedTools::HtmlHelper.escape_entities(link)) do
           unless self.title.blank?
-            xml_builder.title(FeedTools::HtmlHelper.strip_html(self.title))
+            xml_builder.title(FeedTools::HtmlHelper.strip_html_tags(self.title))
           else
             xml_builder.title
           end
@@ -1759,7 +1759,7 @@ module FeedTools
         # normal rss format
         return xml_builder.item do
           unless self.title.blank?
-            xml_builder.title(FeedTools::HtmlHelper.strip_html(self.title))
+            xml_builder.title(FeedTools::HtmlHelper.strip_html_tags(self.title))
           end
           unless self.link.blank?
             xml_builder.link(link)
@@ -1848,7 +1848,8 @@ module FeedTools
         return xml_builder.entry("xmlns" =>
             FEED_TOOLS_NAMESPACES['atom10']) do
           unless title.nil? || title == ""
-            xml_builder.title(title,
+            xml_builder.title(
+              FeedTools::HtmlHelper.strip_html_tags(self.title),
                 "type" => "html")
           end
           xml_builder.author do
@@ -1865,10 +1866,13 @@ module FeedTools
             end
           end
           unless link.nil? || link == ""
-            xml_builder.link("href" => FeedTools::HtmlHelper.escape_entities(self.link),
+            xml_builder.link(
+                "href" =>
+                  FeedTools::HtmlHelper.escape_entities(self.link),
                 "rel" => "alternate",
                 "title" => FeedTools::HtmlHelper.escape_entities(
-                  FeedTools::HtmlHelper.strip_html(self.title)))
+                  FeedTools::HtmlHelper.convert_html_to_plain_text(
+                    self.title)))
           end
           if !self.content.blank?
             xml_builder.content(self.content,

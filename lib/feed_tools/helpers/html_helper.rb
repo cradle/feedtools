@@ -43,23 +43,38 @@ module FeedTools
       unescaped_html = html
       unescaped_html.gsub!(/&#x26;/, "&amp;")
       unescaped_html.gsub!(/&#38;/, "&amp;")
+      unescaped_html = unescaped_html.gsub(/&#x\d+;/) do |hex|
+        "&#" + hex[3..-2].to_i(16).to_s + ";"
+      end
       unescaped_html = CGI.unescapeHTML(unescaped_html)
       unescaped_html.gsub!(/&apos;/, "'")
       unescaped_html.gsub!(/&quot;/, "\"")
       return unescaped_html
     end
 
-    # Removes all html tags from the html formatted text.
-    def self.strip_html(html)
+    # Removes all html tags from the html formatted text, but leaves
+    # escaped entities alone.
+    def self.strip_html_tags(html)
       return nil if html.nil?
-      # TODO: do this properly
-      # ======================
       stripped_html = html
-      stripped_html = stripped_html.gsub(/<\/?[^>]+>/, "")
+      stripped_html.gsub!(/<\/?[^>]+>/, "")
+      return stripped_html
+    end
+    
+    # Removes all html tags from the html formatted text and removes
+    # escaped entities.
+    def self.convert_html_to_plain_text(html)
+      return nil if html.nil?
+      stripped_html = html
+      stripped_html = FeedTools::HtmlHelper.strip_html_tags(stripped_html)
+      stripped_html.gsub!(/&#8216;/, "'")
+      stripped_html.gsub!(/&#8217;/, "'")
+      stripped_html.gsub!(/&#8220;/, "\"")
+      stripped_html.gsub!(/&#8221;/, "\"")
       stripped_html = FeedTools::HtmlHelper.unescape_entities(
         FeedTools::HtmlHelper.unescape_entities(
         FeedTools::HtmlHelper.unescape_entities(stripped_html)))
-      return stripped_html
+      return stripped_html  
     end
     
     # Returns true if the html tidy module can be used.

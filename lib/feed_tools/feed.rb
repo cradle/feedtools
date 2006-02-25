@@ -1948,7 +1948,8 @@ module FeedTools
           self.channel_node, ["generator/text()"],
           :select_result_value => true)
         unless @generator.nil?
-          @generator = FeedTools::HtmlHelper.strip_html(@generator)
+          @generator =
+            FeedTools::HtmlHelper.convert_html_to_plain_text(@generator)
         end
       end
       return @generator
@@ -1970,7 +1971,9 @@ module FeedTools
         @docs = FeedTools::XmlHelper.try_xpaths(
           self.channel_node, ["docs/text()"],
           :select_result_value => true)
-        @docs = FeedTools::HtmlHelper.strip_html(@docs) unless @docs.nil?
+        unless @docs.blank?
+          @docs = FeedTools::HtmlHelper.convert_html_to_plain_text(@docs)
+        end
       end
       return @docs
     end
@@ -2223,7 +2226,8 @@ module FeedTools
           end
           xml_builder.channel(channel_attributes) do
             unless self.title.blank?
-              xml_builder.title(FeedTools::HtmlHelper.strip_html(self.title))
+              xml_builder.title(
+                FeedTools::HtmlHelper.strip_html_tags(self.title))
             else
               xml_builder.title
             end
@@ -2319,7 +2323,8 @@ module FeedTools
             "xmlns:media" => FEED_TOOLS_NAMESPACES['media']) do
           xml_builder.channel do
             unless self.title.blank?
-              xml_builder.title(FeedTools::HtmlHelper.strip_html(self.title))
+              xml_builder.title(
+                FeedTools::HtmlHelper.strip_html_tags(self.title))
             end
             unless self.link.blank?
               xml_builder.link(link)
@@ -2383,7 +2388,7 @@ module FeedTools
                 FeedTools::HtmlHelper.escape_entities(self.link),
               "rel" => "alternate",
               "title" => FeedTools::HtmlHelper.escape_entities(
-                FeedTools::HtmlHelper.strip_html(self.title)))
+                FeedTools::HtmlHelper.convert_html_to_plain_text(self.title)))
           end
           unless self.subtitle.blank?
             xml_builder.subtitle(self.subtitle,
