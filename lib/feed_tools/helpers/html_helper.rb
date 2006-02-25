@@ -54,7 +54,9 @@ module FeedTools
       return nil if html.nil?
       # TODO: do this properly
       # ======================
-      stripped_html = html.gsub(/<\/?[^>]+>/, "")
+      stripped_html = html
+      stripped_html = stripped_html.gsub(/<\/?[^>]+>/, "")
+      stripped_html = FeedTools::HtmlHelper.unescape_entities(stripped_html)
       return stripped_html
     end
     
