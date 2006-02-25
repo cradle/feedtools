@@ -747,9 +747,16 @@ module FeedTools
             "link[@rel='enclosure']"
           ])
         media_content_enclosures =
-          FeedTools::XmlHelper.try_xpaths_all(self.root_node, ["media:content"])
+          FeedTools::XmlHelper.try_xpaths_all(self.root_node,
+            ["media:content"])
         media_group_enclosures =
           FeedTools::XmlHelper.try_xpaths_all(self.root_node, ["media:group"])
+          
+        # TODO: Implement this
+        bittorrent_enclosures =
+          FeedTools::XmlHelper.try_xpaths_all(self.root_node,
+            ["bitTorrent:torrent"])
+        
 
         # Parse RSS-type enclosures.  Thanks to a few buggy enclosures
         # implementations, sometimes these also manage to show up in atom

@@ -42,6 +42,7 @@ FEED_TOOLS_NAMESPACES = {
   "atom03" => "http://purl.org/atom/ns#",
   "atom-blog" => "http://purl.org/atom-blog/ns#",
   "audio" => "http://media.tangent.org/rss/1.0/",
+  "bitTorrent" =>"http://www.reallysimplesyndication.com/bitTorrentRssModule",
   "blogChannel" => "http://backend.userland.com/blogChannelModule",
   "blogger" => "http://www.blogger.com/atom/ns#",
   "cc" => "http://web.resource.org/cc/",

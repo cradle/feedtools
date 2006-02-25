@@ -318,7 +318,7 @@ module FeedTools
               # we get to blame other people's bad software and/or bad
               # configuration files.
               if error.response.code.to_i == 404 &&
-                  FeedTools.user_agent != nil
+                  FeedTools.configurations[:user_agent] != nil
                 @http_response = http_fetch.call(self.href, {}, 10, [], true)
                 if @http_response != nil && @http_response.code.to_i == 200
                   warn("The server appears to be blocking based on the " +
