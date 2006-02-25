@@ -56,7 +56,9 @@ module FeedTools
       # ======================
       stripped_html = html
       stripped_html = stripped_html.gsub(/<\/?[^>]+>/, "")
-      stripped_html = FeedTools::HtmlHelper.unescape_entities(stripped_html)
+      stripped_html = FeedTools::HtmlHelper.unescape_entities(
+        FeedTools::HtmlHelper.unescape_entities(
+        FeedTools::HtmlHelper.unescape_entities(stripped_html)))
       return stripped_html
     end
     
