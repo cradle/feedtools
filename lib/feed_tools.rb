@@ -591,29 +591,25 @@ module REXML # :nodoc:
       warn("inner_xml method already exists.")
     end
     
-    unless REXML::Element.public_instance_methods.include? :base_uri
-      def base_uri # :nodoc:
-        begin
-          base_attribute = attribute('xml:base')
-          if parent == nil || parent.kind_of?(REXML::Document)
-            return nil if base_attribute == nil
-            return base_attribute.value
-          end
-          if base_attribute != nil && parent == nil
-            return base_attribute.value
-          elsif parent != nil && base_attribute == nil
-            return parent.base_uri
-          elsif parent != nil && base_attribute != nil
-            uri = URI.parse(parent.base_uri)
-            return (uri + base_attribute.value).to_s
-          end
-          return nil
-        rescue
-          return nil
+    def base_uri # :nodoc:
+      begin
+        base_attribute = attribute('xml:base')
+        if parent == nil || parent.kind_of?(REXML::Document)
+          return nil if base_attribute == nil
+          return base_attribute.value
         end
+        if base_attribute != nil && parent == nil
+          return base_attribute.value
+        elsif parent != nil && base_attribute == nil
+          return parent.base_uri
+        elsif parent != nil && base_attribute != nil
+          uri = URI.parse(parent.base_uri)
+          return (uri + base_attribute.value).to_s
+        end
+        return nil
+      rescue
+        return nil
       end
-    else
-      warn("base_uri method already exists.")
     end
   end
 end

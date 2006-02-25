@@ -347,6 +347,37 @@ module FeedTools
       ].include?(type)
     end
     
+    # Resolves all relative uris in a block of html.
+    def self.resolve_relative_uris(html, base_uri_sources=[])
+      html_doc = HTree.parse_xml("<root>" + html + "</root>").to_rexml
+      
+      resolve_node = lambda do |html_node|
+        if html_node.respond_to? :children
+          for child in html_node.children
+            if child.kind_of? REXML::Element
+              if child.name.downcase == "a"
+                href = child.attribute("href").value
+                href = FeedTools::UriHelper.resolve_relative_uri(
+                  href, [child.base_uri] | base_uri_sources)
+                child.attribute("href").instance_variable_set("@value", href)
+              end
+              if child.name.downcase == "img"
+                href = child.attribute("src").value
+                href = FeedTools::UriHelper.resolve_relative_uri(
+                  href, [child.base_uri] | base_uri_sources)
+                child.attribute("src").instance_variable_set("@value", href)
+              end
+            end
+            resolve_node.call(child)
+          end
+        end
+        html_node
+      end
+      resolve_node.call(html_doc.root)
+      html = html_doc.root.inner_xml
+      return html
+    end
+    
     # Returns a string containing normalized xhtml from within a REXML node.
     def self.extract_xhtml(rexml_node)
       rexml_node_dup = rexml_node.deep_clone
@@ -397,7 +428,8 @@ module FeedTools
     end
     
     # Given a REXML node, returns its content, normalized as HTML.
-    def self.process_text_construct(content_node, feed_type, feed_version)
+    def self.process_text_construct(content_node, feed_type, feed_version,
+        base_uri_sources=[])
       if content_node.nil?
         return nil
       end
@@ -453,7 +485,11 @@ module FeedTools
         if FeedTools.configurations[:sanitization_enabled]
           content = FeedTools::HtmlHelper.sanitize_html(content, :strip)
         end
-        content = FeedTools::HtmlHelper.unescape_entities(content) if repair_entities
+        content = FeedTools::HtmlHelper.resolve_relative_uris(content,
+          [content_node.base_uri] | base_uri_sources)
+        if repair_entities
+          content = FeedTools::HtmlHelper.unescape_entities(content)
+        end
         content = FeedTools::HtmlHelper.tidy_html(content)
       end
       if FeedTools.configurations[:tab_spaces] != nil
