@@ -67,9 +67,7 @@ module FeedTools
       return nil if html.nil?
       stripped_html = html
       stripped_html = FeedTools::HtmlHelper.strip_html_tags(stripped_html)
-      stripped_html = FeedTools::HtmlHelper.unescape_entities(
-        FeedTools::HtmlHelper.unescape_entities(
-        FeedTools::HtmlHelper.unescape_entities(stripped_html)))
+      stripped_html = FeedTools::HtmlHelper.unescape_entities(stripped_html)
       stripped_html.gsub!(/&#8216;/, "'")
       stripped_html.gsub!(/&#8217;/, "'")
       stripped_html.gsub!(/&#8220;/, "\"")
