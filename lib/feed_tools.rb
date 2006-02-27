@@ -72,6 +72,7 @@ FEED_TOOLS_NAMESPACES = {
   "rss09" => "http://my.netscape.com/rdf/simple/0.9/",
   "rss10" => "http://purl.org/rss/1.0/",
   "rss11" => "http://purl.org/net/rss1.1#",
+  "rss20" => "http://backend.userland.com/rss2",
   "search" => "http://purl.org/rss/1.0/modules/search/",
   "slash" => "http://purl.org/rss/1.0/modules/slash/",
   "soap" => "http://schemas.xmlsoap.org/soap/envelope/",
