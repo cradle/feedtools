@@ -6,6 +6,7 @@
  * feed cache is set to nil by default now
  * both summary and content elements are generated now
  * now supports proxies
+ * now supports internationalized domain names if libidn is installed
  * fixed bug with feed merging referencing a method that was refactored
  * no longer dies if uuidtools gem is missing but the UUID class is defined
  * updated timestamp handling and generation
@@ -18,6 +19,7 @@
  * added support for the payload module
  * added support for xhtml:div elements
  * dc:date now preempts pubDate
+ * added better support for the scriptingNews format
  * now correctly strips out wrapper div elements from text constructs
  * fixed issue with some atom links being incorrectly identified as images
  * reorganized some of the helper modules
