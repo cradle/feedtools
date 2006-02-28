@@ -96,7 +96,7 @@ $:.unshift(File.dirname(__FILE__) + "/feed_tools/vendor")
 begin
   begin
     require 'iconv'
-  rescue LoadError
+  rescue Object
     warn("The Iconv library does not appear to be installed properly.  " +
       "FeedTools cannot function properly without it.")
     raise
@@ -106,11 +106,15 @@ begin
 
   require_gem('builder', '>= 1.2.4')
 
+  # Preload optional libraries.
   begin
     require 'tidy'
-  rescue LoadError
-    # Ignore the error for now.
+  rescue Object
   end
+  begin
+    require 'idn'
+  rescue Object
+  end  
 
   require 'feed_tools/vendor/htree'
 
@@ -135,9 +139,13 @@ begin
   begin
     require_gem('uuidtools', '>= 0.1.2')
   rescue Gem::LoadError
-    raise unless defined? UUID
+    begin
+      require 'uuidtools'
+    rescue Object
+      raise unless defined? UUID
+    end
   end
-
+  
   require 'feed_tools/feed'
   require 'feed_tools/feed_item'
   require 'feed_tools/feed_structures'
@@ -186,6 +194,7 @@ module FeedTools
         :generator_href => "http://www.sporkmonger.com/projects/feedtools/",
         :tidy_enabled => true,
         :tidy_options => {},
+        :idn_enabled => true,
         :sanitization_enabled => true,
         :sanitize_with_nofollow => true,
         :always_strip_wrapper_elements => true,

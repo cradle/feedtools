@@ -14,6 +14,17 @@ class AtomTest < Test::Unit::TestCase
         File.expand_path(File.dirname(__FILE__)) + '/../feeds')
   end
 
+  def test_iri_feed
+    if FeedTools::UriHelper.idn_enabled?
+      with_feed(:from_url =>
+          'http://www.詹姆斯.com/atomtests/iri/everything.atom') { |feed|
+        assert_equal(
+          "http://www.xn--8ws00zhy3a.com/atomtests/iri/everything.atom",
+          feed.url)
+      }
+    end
+  end
+  
   def test_feed_title
     with_feed(:from_file => 'wellformed/atom/atom_namespace_1.xml') { |feed|
       assert_equal("Example Atom", feed.title)

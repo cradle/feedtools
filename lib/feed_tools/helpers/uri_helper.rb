@@ -28,6 +28,31 @@ module FeedTools
   # Generic url processing methods needed in numerous places throughout
   # FeedTools
   module UriHelper
+    # Returns true if the idn module can be used.
+    def self.idn_enabled?
+      # This is an override variable to keep idn from being used even if it
+      # is available.
+      if FeedTools.configurations[:idn_enabled] == false
+        return false
+      end
+      if @idn_enabled.nil? || @idn_enabled == false
+        @idn_enabled = false
+        begin
+          require 'idn'
+          if IDN::Idna.toASCII('http://www.詹姆斯.com/') ==
+            "http://www.xn--8ws00zhy3a.com/"
+            @idn_enabled = true
+          else
+            @idn_enabled = false
+          end
+        rescue LoadError
+          # Tidy not installed, disable features that rely on tidy.
+          @idn_enabled = false
+        end
+      end
+      return @idn_enabled
+    end
+    
     # Attempts to ensures that the passed url is valid and sane.  Accepts very,
     # very ugly urls and makes every effort to figure out what it was supposed
     # to be.  Also translates from the feed: and rss: pseudo-protocols to the
@@ -83,6 +108,9 @@ module FeedTools
         end
         if normalized_url == "http://"
           return nil
+        end
+        if FeedTools::UriHelper.idn_enabled?
+          normalized_url = IDN::Idna.toASCII(normalized_url)
         end
         begin
           feed_uri = URI.parse(normalized_url)
