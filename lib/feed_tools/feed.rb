@@ -916,7 +916,8 @@ module FeedTools
           "atom03:title",
           "atom:title",
           "title",
-          "dc:title"
+          "dc:title",
+          "channelTitle"
         ])
         @title = FeedTools::HtmlHelper.process_text_construct(title_node,
           self.feed_type, self.feed_version)
@@ -948,7 +949,6 @@ module FeedTools
           "description",
           "summary",
           "abstract",
-          "ABSTRACT",
           "content:encoded",
           "encoded",
           "content",
@@ -958,6 +958,7 @@ module FeedTools
           "div",
           "p:payload",
           "payload",
+          "channelDescription",
           "blurb",
           "info"
         ])
@@ -1142,6 +1143,7 @@ module FeedTools
             "atom03:link",
             "atom:link",
             "link",
+            "channelLink",
             "a",
             "url",
             "href"
@@ -1689,7 +1691,8 @@ module FeedTools
           self.channel_node, [
             "image",
             "logo",
-            "apple-wallpapers:image"
+            "apple-wallpapers:image",
+            "imageUrl"
           ]
         )
         unless image_nodes.blank?
