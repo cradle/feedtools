@@ -107,6 +107,26 @@ class AtomTest < Test::Unit::TestCase
       assert_equal("http://www.example.com/something.jpeg",
         feed.images[0].url)
     }
+    with_feed(:from_data => <<-FEED
+      <feed>
+        <entry xml:base="http://example.com/articles/">
+          <title>Pain And Suffering</title>
+          <link href="1.html" type="text/plain" />
+          <link href="./2.html" type="application/xml" rel="alternate" />
+          <link href="../3.html" type="text/html" rel="alternate" />
+          <link href="../4.html" />
+          <link href="./5.html" type="application/xhtml+xml" />
+          <link href="6.css" type="text/css" rel="stylesheet" />
+          <content type="text">
+            What does your parser come up with for the main link?
+            What's the right value?
+          </content>
+        </entry>
+      </feed>
+    FEED
+    ) { |feed|
+      assert_equal("http://example.com/3.html", feed.entries[0].link)
+    }    
   end
 
   def test_feed_copyright

@@ -109,8 +109,11 @@ module FeedTools
         if normalized_url == "http://"
           return nil
         end
-        if FeedTools::UriHelper.idn_enabled?
-          normalized_url = IDN::Idna.toASCII(normalized_url)
+        begin
+          if FeedTools::UriHelper.idn_enabled?
+            normalized_url = IDN::Idna.toASCII(normalized_url)
+          end
+        rescue Object
         end
         begin
           feed_uri = URI.parse(normalized_url)

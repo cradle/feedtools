@@ -603,7 +603,9 @@ module REXML # :nodoc:
     
     def base_uri # :nodoc:
       begin
-        base_attribute = attribute('xml:base')
+        base_attribute = FeedTools::XmlHelper.try_xpaths(self, [
+          '@xml:base'
+        ])
         if parent == nil || parent.kind_of?(REXML::Document)
           return nil if base_attribute == nil
           return base_attribute.value
@@ -613,8 +615,13 @@ module REXML # :nodoc:
         elsif parent != nil && base_attribute == nil
           return parent.base_uri
         elsif parent != nil && base_attribute != nil
-          uri = URI.parse(parent.base_uri)
-          return (uri + base_attribute.value).to_s
+          parent_base_uri = parent.base_uri
+          if parent_base_uri != nil
+            uri = URI.parse(parent_base_uri)
+            return (uri + base_attribute.value).to_s
+          else
+            return base_attribute.value
+          end
         end
         return nil
       rescue
