@@ -877,10 +877,13 @@ module FeedTools
           ], :select_result_value => true) do |result|
             override_href.call(FeedTools::UriHelper.normalize_url(result))
           end
-          if !(@href =~ /^file:/) &&
-              !FeedTools::UriHelper.is_uri?(@href)
-            @href = FeedTools::UriHelper.resolve_relative_uri(
-              @href, [self.base_uri])
+          begin
+            if !(@href =~ /^file:/) &&
+                !FeedTools::UriHelper.is_uri?(@href)
+              @href = FeedTools::UriHelper.resolve_relative_uri(
+                @href, [self.base_uri])
+            end
+          rescue
           end
           if FeedTools.configurations[:url_normalization_enabled]
             @href = FeedTools::UriHelper.normalize_url(@href)
@@ -1438,6 +1441,16 @@ module FeedTools
           @author.raw = nil if @author.raw.blank?
           @author.email = nil if @author.email.blank?
           @author.url = nil if @author.url.blank?
+          if @author.url != nil
+            begin
+              if !(@author.url =~ /^file:/) &&
+                  !FeedTools::UriHelper.is_uri?(@author.url)
+                @author.url = FeedTools::UriHelper.resolve_relative_uri(
+                  @author.url, [author_node.base_uri, self.base_uri])
+              end
+            rescue
+            end
+          end
         end
         # Fallback on the itunes module if we didn't find an author name
         begin
@@ -1513,6 +1526,20 @@ module FeedTools
         @publisher.raw = nil if @publisher.raw.blank?
         @publisher.email = nil if @publisher.email.blank?
         @publisher.url = nil if @publisher.url.blank?
+        if @publisher.url != nil
+          begin
+            if !(@publisher.url =~ /^file:/) &&
+                !FeedTools::UriHelper.is_uri?(@publisher.url)
+              channel_base_uri = nil
+              unless self.channel_node.nil?
+                channel_base_uri = self.channel_node.base_uri
+              end
+              @publisher.url = FeedTools::UriHelper.resolve_relative_uri(
+                @publisher.url, [channel_base_uri, self.base_uri])
+            end
+          rescue
+          end
+        end        
       end
       return @publisher
     end
