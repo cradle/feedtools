@@ -403,12 +403,15 @@ module FeedTools
             if child.kind_of? REXML::Element
               for element_attribute_pair in relative_uri_attributes
                 if child.name.downcase == element_attribute_pair[0]
-                  href = child.attribute(element_attribute_pair[1]).value
-                  href = FeedTools::UriHelper.resolve_relative_uri(
-                    href, [child.base_uri] | base_uri_sources)
-                  child.attribute(
-                    element_attribute_pair[1]).instance_variable_set(
-                      "@value", href)
+                  attribute = child.attribute(element_attribute_pair[1])
+                  if attribute != nil
+                    href = attribute.value
+                    href = FeedTools::UriHelper.resolve_relative_uri(
+                      href, [child.base_uri] | base_uri_sources)
+                    child.attribute(
+                      element_attribute_pair[1]).instance_variable_set(
+                        "@value", href)
+                  end
                 end
               end
             end
