@@ -88,6 +88,17 @@ class HelperTest < Test::Unit::TestCase
     assert_equal("file:///c:/windows/My%20Documents%20100%20/foo.txt",
       FeedTools::UriHelper.normalize_url(
         "file:///c:/windows/My%20Documents%20100%20/foo.txt"))
+    if FeedTools::UriHelper.idn_enabled?
+      # Test internationalized domain names
+      assert_equal(
+        "http://www.xn--8ws00zhy3a.com/atomtests/iri/everything.atom",
+        FeedTools::UriHelper.normalize_url(
+          "http://www.詹姆斯.com/atomtests/iri/everything.atom"))
+      assert_equal(
+        "http://www.xn--8ws00zhy3a.com/atomtests/iri/%E8%A9%B9.html",
+        FeedTools::UriHelper.normalize_url(
+          "http://www.詹姆斯.com/atomtests/iri/詹.html"))
+    end
   end
   
   def test_sanitize_html

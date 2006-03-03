@@ -1820,11 +1820,11 @@ module FeedTools
       @rights = new_rights
     end
 
-    def license
+    def license #:nodoc:
       raise "Not implemented yet."
     end
     
-    def license=(new_license)
+    def license=(new_license) #:nodoc:
       raise "Not implemented yet."
     end
     

@@ -103,15 +103,31 @@ module FeedTools
         normalized_url.gsub!(/^file:\/\/\/([a-zA-Z])\|/i, 'file:///\1:')
         normalized_url.gsub!(/\\/, '/')
       else
-        if (normalized_url =~ /https?:\/\//i) == nil
+        if (normalized_url =~ /^https?:\/\//i) == nil
           normalized_url = "http://" + normalized_url
         end
         if normalized_url == "http://"
           return nil
         end
         begin
-          if FeedTools::UriHelper.idn_enabled?
-            normalized_url = IDN::Idna.toASCII(normalized_url)
+          scheme, host_part, path =
+            normalized_url.scan(/^(https?):\/\/([^\/]+)\/(.*)/i).flatten
+          if scheme != nil && host_part != nil && path != nil
+            scheme = scheme.downcase
+            if FeedTools::UriHelper.idn_enabled?
+              host_part =
+                IDN::Idna.toASCII(host_part)
+            end
+            new_path = ""
+            for index in 0...path.size
+              if path[index] <= 32 || path[index] >= 126
+                new_path << ("%" + path[index].to_s(16).upcase)
+              else
+                new_path << path[index..index]
+              end
+            end
+            path = new_path
+            normalized_url = scheme + "://" + host_part + "/" + path
           end
         rescue Object
         end

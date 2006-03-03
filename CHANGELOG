@@ -1,6 +1,7 @@
 == FeedTools 0.2.23
  * autodiscovery implemented
  * now knows a title from a hole in the ground
+ * now resolves relative urls when possible
  * changed default table name to "cached_feeds" to avoid name collisions
  * schema now uses "href" instead of "url"
  * feed cache is set to nil by default now
