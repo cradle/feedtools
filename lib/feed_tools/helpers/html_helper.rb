@@ -364,25 +364,52 @@ module FeedTools
       ].include?(type)
     end
     
+#     can_be_relative_uri = ['link', 'id', 'wfw_comment', 'wfw_commentrss', 'docs', 'url', 'href', 'comments', 'license', 'icon', 'logo']
+    
     # Resolves all relative uris in a block of html.
     def self.resolve_relative_uris(html, base_uri_sources=[])
+      relative_uri_attributes = [
+        ["a", "href"],
+        ["applet", "codebase"],
+        ["area", "href"],
+        ["blockquote", "cite"],
+        ["body", "background"],
+        ["del", "cite"],
+        ["form", "action"],
+        ["frame", "longdesc"],
+        ["frame", "src"],
+        ["iframe", "longdesc"],
+        ["iframe", "src"],
+        ["head", "profile"],
+        ["img", "longdesc"],
+        ["img", "src"],
+        ["img", "usemap"],
+        ["input", "src"],
+        ["input", "usemap"],
+        ["ins", "cite"],
+        ["link", "href"],
+        ["object", "classid"],
+        ["object", "codebase"],
+        ["object", "data"],
+        ["object", "usemap"],
+        ["q", "cite"],
+        ["script", "src"]
+      ]
       html_doc = HTree.parse_xml("<root>" + html + "</root>").to_rexml
       
       resolve_node = lambda do |html_node|
         if html_node.respond_to? :children
           for child in html_node.children
             if child.kind_of? REXML::Element
-              if child.name.downcase == "a"
-                href = child.attribute("href").value
-                href = FeedTools::UriHelper.resolve_relative_uri(
-                  href, [child.base_uri] | base_uri_sources)
-                child.attribute("href").instance_variable_set("@value", href)
-              end
-              if child.name.downcase == "img"
-                href = child.attribute("src").value
-                href = FeedTools::UriHelper.resolve_relative_uri(
-                  href, [child.base_uri] | base_uri_sources)
-                child.attribute("src").instance_variable_set("@value", href)
+              for element_attribute_pair in relative_uri_attributes
+                if child.name.downcase == element_attribute_pair[0]
+                  href = child.attribute(element_attribute_pair[1]).value
+                  href = FeedTools::UriHelper.resolve_relative_uri(
+                    href, [child.base_uri] | base_uri_sources)
+                  child.attribute(
+                    element_attribute_pair[1]).instance_variable_set(
+                      "@value", href)
+                end
               end
             end
             resolve_node.call(child)

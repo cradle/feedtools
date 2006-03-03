@@ -1110,10 +1110,17 @@ module FeedTools
           @link = FeedTools::HtmlHelper.unescape_entities(@link)
         end
         @link = nil if @link.blank?
-        if !(@link =~ /^file:/) &&
-            !FeedTools::UriHelper.is_uri?(@link)
-          @link = FeedTools::UriHelper.resolve_relative_uri(
-            @link, self.base_uri)
+        begin
+          if !(@link =~ /^file:/) &&
+              !FeedTools::UriHelper.is_uri?(@link)
+            channel_base_uri = nil
+            unless self.channel_node.nil?
+              channel_base_uri = self.channel_node.base_uri
+            end
+            @link = FeedTools::UriHelper.resolve_relative_uri(
+              @link, [channel_base_uri, self.base_uri])
+          end
+        rescue
         end
         if FeedTools.configurations[:url_normalization_enabled]
           @link = FeedTools::UriHelper.normalize_url(@link)
@@ -1250,22 +1257,11 @@ module FeedTools
         if @base_uri.blank?
           @base_uri =
             FeedTools::GenericHelper.recursion_trap(:feed_base_uri) do
-              self.link
+              self.href
             end
         end
         if !@base_uri.blank?
           @base_uri = FeedTools::UriHelper.normalize_url(@base_uri)
-        else
-          feed_url =
-            FeedTools::GenericHelper.recursion_trap(:feed_base_uri) do
-              self.href
-            end
-          if feed_url != nil && feed_url =~ /^http/
-            @base_uri = FeedTools::UriHelper.normalize_url(
-              URI.parse(feed_url).host)
-          else
-            @base_uri = nil
-          end
         end
       end
       return @base_uri
@@ -1295,6 +1291,18 @@ module FeedTools
             "@href",
             "text()"
           ], :select_result_value => true)
+          begin
+            if !(@icon =~ /^file:/) &&
+                !FeedTools::UriHelper.is_uri?(@icon)
+              channel_base_uri = nil
+              unless self.channel_node.nil?
+                channel_base_uri = self.channel_node.base_uri
+              end
+              @icon = FeedTools::UriHelper.resolve_relative_uri(
+                @icon, [channel_base_uri, self.base_uri])
+            end
+          rescue
+          end
           @icon = nil unless FeedTools::UriHelper.is_uri?(@icon)
           @icon = nil if @icon.blank?
         end
@@ -1702,13 +1710,18 @@ module FeedTools
               "url/text()",
               "@rdf:resource",
               "@href",
-              "@href",
               "text()"
             ], :select_result_value => true)
-            if !(image.href =~ /^file:/) &&
-                !FeedTools::UriHelper.is_uri?(image.href)
-              image.href = FeedTools::UriHelper.resolve_relative_uri(
-                image.href, [image_node.base_uri, self.base_uri])
+            if image.href.nil? && image_node.base_uri != nil
+              image.href = ""
+            end
+            begin
+              if !(image.href =~ /^file:/) &&
+                  !FeedTools::UriHelper.is_uri?(image.href)
+                image.href = FeedTools::UriHelper.resolve_relative_uri(
+                  image.href, [image_node.base_uri, self.base_uri])
+              end
+            rescue
             end
             if FeedTools.configurations[:url_normalization_enabled]
               image.href = FeedTools::UriHelper.normalize_url(image.href)
@@ -1807,6 +1820,14 @@ module FeedTools
       @rights = new_rights
     end
 
+    def license
+      raise "Not implemented yet."
+    end
+    
+    def license=(new_license)
+      raise "Not implemented yet."
+    end
+    
     # Returns the number of seconds before the feed should expire
     def time_to_live
       if @time_to_live.nil?
@@ -1974,8 +1995,20 @@ module FeedTools
         @docs = FeedTools::XmlHelper.try_xpaths(
           self.channel_node, ["docs/text()"],
           :select_result_value => true)
-        unless @docs.blank?
-          @docs = FeedTools::HtmlHelper.convert_html_to_plain_text(@docs)
+        begin
+          if !(@docs =~ /^file:/) &&
+              !FeedTools::UriHelper.is_uri?(@docs)
+            channel_base_uri = nil
+            unless self.channel_node.nil?
+              channel_base_uri = self.channel_node.base_uri
+            end
+            @docs = FeedTools::UriHelper.resolve_relative_uri(
+              @docs, [channel_base_uri, self.base_uri])
+          end
+        rescue
+        end
+        if FeedTools.configurations[:url_normalization_enabled]
+          @docs = FeedTools::UriHelper.normalize_url(@docs)
         end
       end
       return @docs

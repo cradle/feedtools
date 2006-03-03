@@ -28,6 +28,11 @@ require 'net/http'
 #  require 'net/https'
 #  require 'net/ftp'
 
+# Stolen from the Universal Feed Parser
+FEED_TOOLS_ACCEPT_HEADER = "application/atom+xml,application/rdf+xml," +
+  "application/rss+xml,application/x-netcdf,application/xml;" +
+  "q=0.9,text/xml;q=0.2,*/*;q=0.1"
+
 # TODO: Refactor http_fetch and other methods.
 module FeedTools
   # Methods for pulling remote data
