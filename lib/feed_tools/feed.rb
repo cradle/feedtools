@@ -119,7 +119,7 @@ module FeedTools
           unless autodiscovered_url.nil?
             self.feed_data = nil
             self.href = autodiscovered_url
-            self.expire! unless self.cache_object.nil?
+            self.cache_object = nil
             self.update!
           end
         end
