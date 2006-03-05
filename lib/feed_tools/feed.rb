@@ -101,7 +101,7 @@ module FeedTools
         # Handle autodiscovery
         if self.http_headers['content-type'] =~ /text\/html/ ||
             self.http_headers['content-type'] =~ /application\/xhtml\+xml/
-          
+
           autodiscovered_url = nil
           autodiscovered_url =
             FeedTools::HtmlHelper.extract_link_by_mime_type(self.feed_data,
@@ -2498,6 +2498,14 @@ module FeedTools
 
     # Persists the current feed state to the cache.
     def save
+      if self.http_headers['content-type'] =~ /text\/html/ ||
+          self.http_headers['content-type'] =~ /application\/xhtml\+xml/
+        if self.title.nil && self.link.nil? && self.entries.blank?
+          # Don't save html pages to the cache, it messes with
+          # autodiscovery.
+          return
+        end
+      end
       unless self.href =~ /^file:\/\//
         if FeedTools.feed_cache.nil?
           raise "Caching is currently disabled.  Cannot save to cache."
