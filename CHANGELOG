@@ -1,3 +1,7 @@
+== FeedTools 0.2.24
+ * fixed autodiscovery bugs
+ * added per feed configuration
+ * fixed relative url resolution issues
 == FeedTools 0.2.23
  * autodiscovery implemented
  * now knows a title from a hole in the ground

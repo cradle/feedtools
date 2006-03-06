@@ -7,7 +7,7 @@ require 'rake/gempackagetask'
 require 'rake/contrib/rubyforgepublisher'
 
 PKG_NAME      = 'feedtools'
-PKG_VERSION   = '0.2.23'
+PKG_VERSION   = '0.2.24'
 PKG_FILE_NAME = "#{PKG_NAME}-#{PKG_VERSION}"
 
 RELEASE_NAME  = "REL #{PKG_VERSION}"

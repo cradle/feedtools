@@ -40,31 +40,36 @@ class CacheTest < Test::Unit::TestCase
 
   def test_redirects_when_cache_enabled
     # Ensure the cache is on for this test
-    FeedTools.configurations[:feed_cache] = "FeedTools::DatabaseFeedCache"    
+    FeedTools.configurations[:feed_cache] = "FeedTools::DatabaseFeedCache"
     begin
-      slashdot_feed = FeedTools::Feed.open('http://www.slashdot.org/index.rss')
+      slashdot_feed = FeedTools::Feed.open(
+        'http://www.slashdot.org/index.rss')
       assert(slashdot_feed.feed_data != nil, "No content retrieved.")
+      assert(slashdot_feed.options[:feed_cache] != nil)
+      assert_equal(false, slashdot_feed.href.blank?)
+      slashdot_feed.expire!
       slashdot_feed.expire!
       assert_equal(true, slashdot_feed.expired?)
-      assert_equal(false, slashdot_feed.url.blank?)
-      slashdot_feed = FeedTools::Feed.open('http://www.slashdot.org/index.rss')
+      assert_equal(false, slashdot_feed.href.blank?)
+      slashdot_feed = FeedTools::Feed.open(
+        'http://www.slashdot.org/index.rss')
       assert(slashdot_feed.feed_data != nil, "No content retrieved.")
+      assert(slashdot_feed.options[:feed_cache] != nil)
       assert_equal(true, slashdot_feed.live?)
-      assert_equal(false, slashdot_feed.url.blank?)
-      slashdot_feed = FeedTools::Feed.open('http://www.slashdot.org/index.rss')
+      assert_equal(false, slashdot_feed.href.blank?)
+      slashdot_feed = FeedTools::Feed.open(
+        'http://www.slashdot.org/index.rss')
       assert(slashdot_feed.feed_data != nil, "No content retrieved.")
-      assert_equal(false, slashdot_feed.live?)    
-      assert_equal(false, slashdot_feed.url.blank?)
-      slashdot_feed.expire!
-      slashdot_feed.expire!
-      assert_equal(false, slashdot_feed.url.blank?)
-      slashdot_feed = FeedTools::Feed.open('http://www.slashdot.org/index.rss')
-      assert(slashdot_feed.feed_data != nil, "No content retrieved.")
-      assert_equal(true, slashdot_feed.live?)
-      assert_equal(false, slashdot_feed.url.blank?)
-      FeedTools::Feed.open(slashdot_feed.url)
+      assert(slashdot_feed.options[:feed_cache] != nil)
+      assert_equal(false, slashdot_feed.live?)
+      assert_equal(false, slashdot_feed.href.blank?)
+      
+      # Make sure autodiscovery doesn't break the cache.
+      assert_equal(slashdot_feed.href,
+        FeedTools::Feed.open('http://www.slashdot.org').href)
     
-      entries = FeedTools::DatabaseFeedCache.find_all_by_href(slashdot_feed.url)
+      entries =
+        FeedTools::DatabaseFeedCache.find_all_by_href(slashdot_feed.url)
       assert_equal(1, entries.size)
     rescue FeedTools::FeedAccessError
     end
