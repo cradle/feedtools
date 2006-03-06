@@ -312,10 +312,10 @@ module FeedTools
                   html_node.delete_element(child)
                 end
               end
-              for attribute in child.attributes.keys
-                if !(attribute =~ /^xmlns/)
-                  unless acceptable_attributes.include? attribute.downcase
-                    child.delete_attribute(attribute)
+              for attribute in child.attributes
+                if !(attribute[0] =~ /^xmlns(:.+)?$/)
+                  unless acceptable_attributes.include? attribute[0].downcase
+                    child.delete_attribute(attribute[0])
                   end
                 end
               end
