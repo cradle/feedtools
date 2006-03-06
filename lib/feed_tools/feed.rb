@@ -51,19 +51,22 @@ module FeedTools
       @entries = nil
       @live = false
       @encoding = nil
+      @options = nil
     end
           
     # Loads the feed specified by the url, pulling the data from the
-    # cache if it hasn't expired.
-    # Options are:
-    # * <tt>:cache_only</tt> - If set to true, the feed will only be
-    #   pulled from the cache.
+    # cache if it hasn't expired.  Options supplied will override the
+    # default options.
     def Feed.open(url, options={})
-      FeedTools::GenericHelper.validate_options([ :cache_only ],
-                       options.keys)
-      options = { :cache_only => false }.merge(options)
+      FeedTools::GenericHelper.validate_options(
+        FeedTools.configurations.keys, options.keys)
+
+      # create the new feed
+      feed = FeedTools::Feed.new
+
+      feed.options = FeedTools.configurations.merge(options)
       
-      if options[:cache_only] && FeedTools.feed_cache.nil?
+      if feed.options[:feed_cache] != nil && FeedTools.feed_cache.nil?
         raise(ArgumentError, "There is currently no caching mechanism set. " +
           "Cannot retrieve cached feeds.")
       end
@@ -71,16 +74,32 @@ module FeedTools
       # clean up the url
       url = FeedTools::UriHelper.normalize_url(url)
 
-      # create and load the new feed
-      feed = FeedTools::Feed.new
+      # load the new feed
       feed.href = url
-      feed.update! unless options[:cache_only]
+      feed.update! unless feed.options[:disable_update_from_remote]
       return feed
+    end
+    
+    # Returns the load options for this feed.
+    def options
+      if @options.blank?
+        @options = FeedTools.configurations.dup
+      end
+      return @options
+    end
+    
+    # Sets the load options for this feed.
+    def options=(new_options)
+      @options = new_options
     end
 
     # Loads the feed from the remote url if the feed has expired from the
     # cache or cannot be retrieved from the cache for some reason.
     def update!
+      if self.options[:disable_update_from_remote]
+        # Don't do anything if this option is set
+        return
+      end
       if !FeedTools.feed_cache.nil? &&
           !FeedTools.feed_cache.set_up_correctly?
         raise "Your feed cache system is incorrectly set up.  " +
@@ -243,7 +262,7 @@ module FeedTools
                   found_redirect = false
                   begin
                     cached_feed = FeedTools::Feed.open(new_location,
-                      :cache_only => true)
+                      :disable_update_from_remote => true)
                     if cached_feed.cache_object != nil &&
                         cached_feed.cache_object.new_record? != true
                       if !cached_feed.expired? &&
@@ -2498,6 +2517,10 @@ module FeedTools
 
     # Persists the current feed state to the cache.
     def save
+      if self.options[:feed_cache].nil?
+        # The cache is disabled for this feed, do nothing.
+        return
+      end
       if self.http_headers['content-type'] =~ /text\/html/ ||
           self.http_headers['content-type'] =~ /application\/xhtml\+xml/
         if self.title.nil && self.link.nil? && self.entries.blank?

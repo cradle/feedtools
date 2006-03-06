@@ -32,7 +32,7 @@ FEED_TOOLS_ENV = ENV['FEED_TOOLS_ENV'] ||
                  ENV['RAILS_ENV'] ||
                  'development' # :nodoc:
 
-FEED_TOOLS_VERSION = "0.2.23"
+FEED_TOOLS_VERSION = "0.2.24"
 
 FEED_TOOLS_NAMESPACES = {
   "admin" => "http://webns.net/mvcb/",
@@ -186,6 +186,7 @@ module FeedTools
       config_hash = {}
       @configurations = {
         :feed_cache => nil,
+        :disable_update_from_remote => false,
         :proxy_address => nil,
         :proxy_port => nil,
         :user_agent => "FeedTools/#{FEED_TOOLS_VERSION} " + 

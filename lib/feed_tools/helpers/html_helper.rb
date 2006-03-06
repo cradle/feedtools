@@ -232,6 +232,17 @@ module FeedTools
       return tidy_html
     end
 
+    # Indents a text selection by a specified number of spaces.
+    def self.indent(text, spaces)
+      lines = text.split("\n")
+      buffer = ""
+      for line in lines
+        line = " " * spaces + line
+        buffer << line << "\n"
+      end
+      return buffer
+    end
+
     # Unindents a text selection by a specified number of spaces.
     def self.unindent(text, spaces)
       lines = text.split("\n")
@@ -398,23 +409,23 @@ module FeedTools
       html_doc = HTree.parse_xml("<root>" + html + "</root>").to_rexml
       
       resolve_node = lambda do |html_node|
-        if html_node.respond_to? :children
-          for child in html_node.children
-            if child.kind_of? REXML::Element
-              for element_attribute_pair in relative_uri_attributes
-                if child.name.downcase == element_attribute_pair[0]
-                  attribute = child.attribute(element_attribute_pair[1])
-                  if attribute != nil
-                    href = attribute.value
-                    href = FeedTools::UriHelper.resolve_relative_uri(
-                      href, [child.base_uri] | base_uri_sources)
-                    child.attribute(
-                      element_attribute_pair[1]).instance_variable_set(
-                        "@value", href)
-                  end
-                end
+        if html_node.kind_of? REXML::Element
+          for element_attribute_pair in relative_uri_attributes
+            if html_node.name.downcase == element_attribute_pair[0]
+              attribute = html_node.attribute(element_attribute_pair[1])
+              if attribute != nil
+                href = attribute.value
+                href = FeedTools::UriHelper.resolve_relative_uri(
+                  href, [html_node.base_uri] | base_uri_sources)
+                html_node.attribute(
+                  element_attribute_pair[1]).instance_variable_set(
+                    "@value", href)
               end
             end
+          end
+        end
+        if html_node.respond_to? :children
+          for child in html_node.children
             resolve_node.call(child)
           end
         end
@@ -513,7 +524,9 @@ module FeedTools
           type == "application/xhtml+xml" ||
           content_node.namespace == FEED_TOOLS_NAMESPACES['xhtml']
         content = FeedTools::HtmlHelper.extract_xhtml(content_node)
-      elsif type == "escaped" || mode == "escaped"
+      elsif type == "escaped" || mode == "escaped" ||
+          type == "html" || mode == "html" ||
+          type == "text/html" || mode == "text/html"
         content = FeedTools::HtmlHelper.unescape_entities(
           content_node.inner_xml.strip)
       elsif type == "text" || mode == "text" ||
