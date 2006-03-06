@@ -375,8 +375,6 @@ module FeedTools
       ].include?(type)
     end
     
-#     can_be_relative_uri = ['link', 'id', 'wfw_comment', 'wfw_commentrss', 'docs', 'url', 'href', 'comments', 'license', 'icon', 'logo']
-    
     # Resolves all relative uris in a block of html.
     def self.resolve_relative_uris(html, base_uri_sources=[])
       relative_uri_attributes = [
@@ -439,36 +437,55 @@ module FeedTools
     # Returns a string containing normalized xhtml from within a REXML node.
     def self.extract_xhtml(rexml_node)
       rexml_node_dup = rexml_node.deep_clone
+      namespace_hash = FEED_TOOLS_NAMESPACES.dup
       normalize_namespaced_xhtml = lambda do |node, node_dup|
         if node.kind_of? REXML::Element
           node_namespace = node.namespace
-          # Massive hack, relies on REXML not changing
-          for index in 0...node.attributes.values.size
-            attribute = node.attributes.values[index]
-            attribute_dup = node_dup.attributes.values[index]
-            if attribute.namespace == FEED_TOOLS_NAMESPACES['xhtml']
-              attribute_dup.instance_variable_set(
-                "@expanded_name", attribute.name)
-            end
-            if node_namespace == FEED_TOOLS_NAMESPACES['xhtml']
-              if attribute.name == 'xmlns'
-                node_dup.attributes.delete('xmlns')
+          if node_namespace != namespace_hash['atom10'] &&
+              node_namespace != namespace_hash['atom03']
+            # Massive hack, relies on REXML not changing
+            for index in 0...node.attributes.values.size
+              attribute = node.attributes.values[index]
+              attribute_dup = node_dup.attributes.values[index]
+              if attribute.namespace == namespace_hash['xhtml']
+                attribute_dup.instance_variable_set(
+                  "@expanded_name", attribute.name)
+              end
+              if node_namespace == namespace_hash['xhtml']
+                if attribute.name == 'xmlns'
+                  node_dup.attributes.delete('xmlns')
+                end
               end
             end
-          end
-          if node_namespace == FEED_TOOLS_NAMESPACES['xhtml']
-            node_dup.instance_variable_set("@expanded_name", node.name)
-          end
-          if !node_namespace.blank? && node.prefix.blank?
-            if node.namespace != FEED_TOOLS_NAMESPACES['xhtml']
-              node_dup.add_namespace(node_namespace)
+            if node_namespace == namespace_hash['xhtml']
+              node_dup.instance_variable_set("@expanded_name", node.name)
+            end
+            if !node_namespace.blank? && node.prefix.blank?
+              if node_namespace != namespace_hash['xhtml']
+                prefix = nil
+                for known_prefix in namespace_hash.keys
+                  if namespace_hash[known_prefix] == node_namespace
+                    prefix = known_prefix
+                  end
+                end
+                if prefix.nil?
+                  prefix = "unknown" +
+                    Digest::SHA1.new(node_namespace).to_s[0..4]
+                  namespace_hash[prefix] = node_namespace
+                end
+                node_dup.instance_variable_set("@expanded_name",
+                  "#{prefix}:#{node.name}")
+                node_dup.instance_variable_set("@prefix",
+                  prefix)
+                node_dup.add_namespace(prefix, node_namespace)
+              end
             end
           end
         end
         for index in 0...node.children.size
           child = node.children[index]
-          child_dup = node_dup.children[index]
           if child.kind_of? REXML::Element
+            child_dup = node_dup.children[index]
             normalize_namespaced_xhtml.call(child, child_dup)
           end
         end

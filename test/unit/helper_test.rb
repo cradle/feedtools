@@ -213,7 +213,7 @@ class HelperTest < Test::Unit::TestCase
       "XHTML divs were not normalized properly.")
     assert((xhtml =~ /hsivonen\.iki\.fi/),
       "FooML namespace was not preserved.")
-    assert((xhtml =~ /<ul xmlns=/),
+    assert((xhtml =~ /<foo:ul xmlns:foo=/),
       "Namespace was not placed correctly.")
 
     FeedTools.configurations[:tidy_enabled] = true
@@ -236,7 +236,7 @@ class HelperTest < Test::Unit::TestCase
       "XHTML divs were not normalized properly.")
     assert((xhtml =~ /hsivonen\.iki\.fi/),
       "FooML namespace was not preserved.")
-    assert((xhtml =~ /<ul xmlns=/),
+    assert((xhtml =~ /<foo:ul xmlns:foo=/),
       "Namespace was not placed correctly.")
   end
 end

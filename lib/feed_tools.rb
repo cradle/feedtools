@@ -58,6 +58,7 @@ FEED_TOOLS_NAMESPACES = {
   "image" => "http://purl.org/rss/1.0/modules/image/",
   "feedburner" => "http://rssnamespace.org/feedburner/ext/1.0",
   "foaf" => "http://xmlns.com/foaf/0.1/",
+  "foo" => "http://hsivonen.iki.fi/FooML",
   "fm" => "http://freshmeat.net/rss/fm/",
   "itunes" => "http://www.itunes.com/dtds/podcast-1.0.dtd",
   "l" => "http://purl.org/rss/1.0/modules/link/",
