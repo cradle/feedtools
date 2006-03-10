@@ -426,7 +426,7 @@ module FeedTools
         # with 'file://', strip the 'file://' off the front of the url.
         file_name = self.href.gsub(/^file:\/\//, "")
         if RUBY_PLATFORM =~ /mswin/
-          file_name = file_name[1..-1] if file_name[1..1] == "/"
+          file_name = file_name[1..-1] if file_name[0..0] == "/"
         end
         begin
           open(file_name) do |file|
