@@ -2174,7 +2174,7 @@ module FeedTools
           eval("a.#{sorting_property}") <=> eval("b.#{sorting_property}")
         end
       else
-        @entries = @entries.reverse
+        return @entries.reverse
       end
       return @entries
     end
