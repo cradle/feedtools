@@ -359,7 +359,7 @@ module REXML # :nodoc:
             ns = node.namespace( prefix )
           end
           !(node.node_type == :element and
-            node.name.downcase == name and node.namespace == ns )
+            node.name.downcase == name.downcase and node.namespace == ns )
         end
         return n
 
@@ -422,7 +422,7 @@ module REXML # :nodoc:
           for element in nodeset
             if element.node_type == :element
               for attribute_name in element.attributes.keys
-                if attribute_name.downcase == name
+                if attribute_name.downcase == name.downcase
                   attrib = element.attribute( attribute_name,
                     @namespaces[prefix] )
                   new_nodeset << attrib if attrib
@@ -440,7 +440,8 @@ module REXML # :nodoc:
         return new_nodeset
 
       when :parent
-        return internal_parse( path_stack, nodeset.collect{|n| n.parent}.compact )
+        return internal_parse( path_stack,
+          nodeset.collect{|n| n.parent}.compact )
 
       when :ancestor
         new_nodeset = []

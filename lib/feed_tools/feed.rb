@@ -962,7 +962,6 @@ module FeedTools
     # Returns the feed subtitle
     def subtitle
       if @subtitle.nil?
-        repair_entities = false
         subtitle_node = FeedTools::XmlHelper.try_xpaths(self.channel_node, [
           "atom10:subtitle",
           "subtitle",
