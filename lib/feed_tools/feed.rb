@@ -136,6 +136,11 @@ module FeedTools
                 "application/rdf+xml")
           end
           unless autodiscovered_url.nil?
+            begin
+              autodiscovered_url = FeedTools::UriHelper.resolve_relative_uri(
+                autodiscovered_url, [self.href])
+            rescue Exception
+            end
             self.feed_data = nil
             self.href = autodiscovered_url
             self.cache_object = nil
