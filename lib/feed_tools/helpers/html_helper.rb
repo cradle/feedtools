@@ -587,7 +587,7 @@ module FeedTools
         doc = REXML::Document.new(xhtml.to_s.strip)
         if doc.children.size == 1
           child = doc.children[0]
-          if child.name.downcase == "div"
+          if child.kind_of?(REXML::Element) && child.name.downcase == "div"
             return child.inner_xml.strip
           end
         end

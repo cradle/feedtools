@@ -169,7 +169,10 @@ module FeedTools
       begin
         base_uri = URI.parse(
           FeedTools::XmlHelper.select_not_blank(base_uri_sources))
-        resolved_uri = base_uri + relative_uri.to_s
+        resolved_uri = base_uri
+        if relative_uri.to_s != ''
+          resolved_uri = base_uri + relative_uri.to_s
+        end
         return FeedTools::UriHelper.normalize_url(resolved_uri.to_s)
       rescue
         return relative_uri
