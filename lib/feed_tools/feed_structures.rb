@@ -202,8 +202,7 @@ module FeedTools
     # Allowed values are 'sample', 'full', 'nonstop'.
     def expression=(new_expression)
       unless ['sample', 'full', 'nonstop'].include? new_expression.downcase
-        raise ArgumentError,
-          "Permitted values are 'sample', 'full', 'nonstop'."
+        new_expression = 'full'
       end
       @expression = new_expression.downcase
     end
