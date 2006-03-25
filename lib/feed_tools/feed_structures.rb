@@ -206,7 +206,7 @@ module FeedTools
     # Allowed values are 'sample', 'full', 'nonstop'.
     def expression=(new_expression)
       unless ['sample', 'full', 'nonstop'].include? new_expression.downcase
-        new_expression = 'full'
+        return @expression
       end
       @expression = new_expression.downcase
     end
