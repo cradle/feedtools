@@ -170,6 +170,10 @@ module FeedTools
     alias_method :url=, :href=
     alias_method :link, :href
     alias_method :link=, :href=
+    
+    def initialize
+      @expression = 'full'
+    end
   
     # Returns true if this is the default enclosure
     def is_default?
