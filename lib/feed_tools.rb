@@ -194,7 +194,7 @@ module FeedTools
           "+http://www.sporkmonger.com/projects/feedtools/",
         :generator_name => "FeedTools/#{FEED_TOOLS_VERSION}",
         :generator_href => "http://www.sporkmonger.com/projects/feedtools/",
-        :tidy_enabled => true,
+        :tidy_enabled => false,
         :tidy_options => {},
         :idn_enabled => true,
         :sanitization_enabled => true,
