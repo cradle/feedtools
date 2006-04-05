@@ -1,5 +1,5 @@
 -- Example Sqlite schema
-  CREATE TABLE feeds (
+  CREATE TABLE cached_feeds (
     id                INTEGER PRIMARY KEY NOT NULL,
     href              VARCHAR(255) DEFAULT NULL,
     title             VARCHAR(255) DEFAULT NULL,

@@ -1,5 +1,5 @@
 -- Example PostgreSQL schema
-  CREATE TABLE feeds (
+  CREATE TABLE cached_feeds (
     id                SERIAL PRIMARY KEY NOT NULL,
     href              varchar(255) default NULL,
     title             varchar(255) default NULL,

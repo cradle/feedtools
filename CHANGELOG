@@ -3,6 +3,7 @@
  * updated autodiscovery to handle relative uris
  * added per feed configuration
  * fixed relative url resolution issues
+ * corrected db schema files to match migration file
 == FeedTools 0.2.23
  * autodiscovery implemented
  * now knows a title from a hole in the ground

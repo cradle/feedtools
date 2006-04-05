@@ -1,5 +1,5 @@
 -- Example MySQL schema
-  CREATE TABLE `feeds` (
+  CREATE TABLE `cached_feeds` (
     `id`              int(10) unsigned NOT NULL auto_increment,
     `href`            varchar(255) default NULL,
     `title`           varchar(255) default NULL,
