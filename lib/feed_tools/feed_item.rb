@@ -69,6 +69,24 @@ module FeedTools
       return parent_feed
     end
     
+    # Returns the load options for this feed.
+    def configurations
+      if @configurations.blank?
+        parent_feed = self.feed
+        if parent_feed != nil
+          @configurations = parent_feed.configurations.dup
+        else
+          @configurations = FeedTools.configurations.dup
+        end
+      end
+      return @configurations
+    end
+    
+    # Sets the load options for this feed.
+    def configurations=(new_configurations)
+      @configurations = new_configurations
+    end
+    
     # Returns the feed item's encoding.
     def encoding
       if @encoding.nil?
@@ -202,10 +220,10 @@ module FeedTools
         @title = FeedTools::HtmlHelper.process_text_construct(title_node,
           self.feed_type, self.feed_version)
         if self.feed_type == "atom" ||
-            FeedTools.configurations[:always_strip_wrapper_elements]
+            self.configurations[:always_strip_wrapper_elements]
           @title = FeedTools::HtmlHelper.strip_wrapper_element(@title)
         end
-        if !@title.blank? && FeedTools.configurations[:strip_comment_count]
+        if !@title.blank? && self.configurations[:strip_comment_count]
           # Some blogging tools include the number of comments in a post
           # in the title... this is supremely ugly, and breaks any
           # applications which expect the title to be static, so we're
@@ -257,7 +275,7 @@ module FeedTools
         @content = FeedTools::HtmlHelper.process_text_construct(content_node,
           self.feed_type, self.feed_version)
         if self.feed_type == "atom" ||
-            FeedTools.configurations[:always_strip_wrapper_elements]
+            self.configurations[:always_strip_wrapper_elements]
           @content = FeedTools::HtmlHelper.strip_wrapper_element(@content)
         end
         if @content.blank?
@@ -310,7 +328,7 @@ module FeedTools
         @summary = FeedTools::HtmlHelper.process_text_construct(summary_node,
           self.feed_type, self.feed_version)
         if self.feed_type == "atom" ||
-            FeedTools.configurations[:always_strip_wrapper_elements]
+            self.configurations[:always_strip_wrapper_elements]
           @summary = FeedTools::HtmlHelper.strip_wrapper_element(@summary)
         end
         if @summary.blank?
@@ -456,7 +474,7 @@ module FeedTools
           end
         rescue
         end
-        if FeedTools.configurations[:url_normalization_enabled]
+        if self.configurations[:url_normalization_enabled]
           @link = FeedTools::UriHelper.normalize_url(@link)
         end
       end
@@ -507,7 +525,7 @@ module FeedTools
             end
           rescue
           end
-          if FeedTools.configurations[:url_normalization_enabled]
+          if self.configurations[:url_normalization_enabled]
             link_object.href =
               FeedTools::UriHelper.normalize_url(link_object.href)
           end
@@ -640,7 +658,7 @@ module FeedTools
               end
             rescue
             end
-            if FeedTools.configurations[:url_normalization_enabled]
+            if self.configurations[:url_normalization_enabled]
               image.href = FeedTools::UriHelper.normalize_url(image.href)
             end            
             image.href.strip! unless image.href.nil?
@@ -688,7 +706,7 @@ module FeedTools
           "itunes:image/@href",
           "itunes:link[@rel='image']/@href"
         ], :select_result_value => true)
-        if FeedTools.configurations[:url_normalization_enabled]
+        if self.configurations[:url_normalization_enabled]
           @itunes_image_link = FeedTools::UriHelper.normalize_url(@itunes_image_link)
         end
       end
@@ -706,7 +724,7 @@ module FeedTools
         @media_thumbnail_link = FeedTools::XmlHelper.try_xpaths(self.root_node, [
           "media:thumbnail/@url"
         ], :select_result_value => true)
-        if FeedTools.configurations[:url_normalization_enabled]
+        if self.configurations[:url_normalization_enabled]
           @media_thumbnail_link = FeedTools::UriHelper.normalize_url(@media_thumbnail_link)
         end
       end
@@ -734,7 +752,7 @@ module FeedTools
         @rights = FeedTools::HtmlHelper.process_text_construct(rights_node,
           self.feed_type, self.feed_version)
         if self.feed_type == "atom" ||
-            FeedTools.configurations[:always_strip_wrapper_elements]
+            self.configurations[:always_strip_wrapper_elements]
           @rights = FeedTools::HtmlHelper.strip_wrapper_element(@rights)
         end
       end
@@ -1456,14 +1474,14 @@ module FeedTools
         begin
           if !time_string.blank?
             @time = Time.parse(time_string).gmtime
-          elsif FeedTools.configurations[:timestamp_estimation_enabled] &&
+          elsif self.configurations[:timestamp_estimation_enabled] &&
               !self.title.nil? &&
               (Time.parse(self.title) - Time.now).abs > 100
             @time = Time.parse(self.title).gmtime
           end
         rescue
         end
-        if FeedTools.configurations[:timestamp_estimation_enabled]
+        if self.configurations[:timestamp_estimation_enabled]
           if options[:estimate_timestamp]
             if @time.nil?
               begin
@@ -1615,7 +1633,7 @@ module FeedTools
           end
         rescue
         end
-        if FeedTools.configurations[:url_normalization_enabled]
+        if self.configurations[:url_normalization_enabled]
           @comments = FeedTools::UriHelper.normalize_url(@comments)
         end
       end

@@ -64,9 +64,9 @@ module FeedTools
       # create the new feed
       feed = FeedTools::Feed.new
 
-      feed.options = FeedTools.configurations.merge(options)
+      feed.configurations = FeedTools.configurations.merge(options)
       
-      if feed.options[:feed_cache] != nil && FeedTools.feed_cache.nil?
+      if feed.configurations[:feed_cache] != nil && FeedTools.feed_cache.nil?
         raise(ArgumentError, "There is currently no caching mechanism set. " +
           "Cannot retrieve cached feeds.")
       end
@@ -76,27 +76,27 @@ module FeedTools
 
       # load the new feed
       feed.href = url
-      feed.update! unless feed.options[:disable_update_from_remote]
+      feed.update! unless feed.configurations[:disable_update_from_remote]
       return feed
     end
     
     # Returns the load options for this feed.
-    def options
-      if @options.blank?
-        @options = FeedTools.configurations.dup
+    def configurations
+      if @configurations.blank?
+        @configurations = FeedTools.configurations.dup
       end
-      return @options
+      return @configurations
     end
     
     # Sets the load options for this feed.
-    def options=(new_options)
-      @options = new_options
+    def configurations=(new_configurations)
+      @configurations = new_configurations
     end
 
     # Loads the feed from the remote url if the feed has expired from the
     # cache or cannot be retrieved from the cache for some reason.
     def update!
-      if self.options[:disable_update_from_remote]
+      if self.configurations[:disable_update_from_remote]
         # Don't do anything if this option is set
         return
       end
@@ -203,8 +203,8 @@ module FeedTools
             self.http_headers['last-modified'] unless
             self.http_headers['last-modified'].nil?
         end
-        unless FeedTools.configurations[:user_agent].nil?
-          headers["User-Agent"] = FeedTools.configurations[:user_agent]
+        unless self.configurations[:user_agent].nil?
+          headers["User-Agent"] = self.configurations[:user_agent]
         end
 
         # The http feed access method
@@ -220,8 +220,8 @@ module FeedTools
           end
           
           begin
-            proxy_address = (FeedTools.configurations[:proxy_address] || nil)
-            proxy_port = (FeedTools.configurations[:proxy_port].to_i || nil)
+            proxy_address = (self.configurations[:proxy_address] || nil)
+            proxy_port = (self.configurations[:proxy_port].to_i || nil)
 
             http = Net::HTTP::Proxy(proxy_address, proxy_port).new(
               feed_uri.host, (feed_uri.port or 80))
@@ -342,7 +342,7 @@ module FeedTools
               # we get to blame other people's bad software and/or bad
               # configuration files.
               if error.response.code.to_i == 404 &&
-                  FeedTools.configurations[:user_agent] != nil
+                  self.configurations[:user_agent] != nil
                 @http_response = http_fetch.call(self.href, {}, 10, [], true)
                 if @http_response != nil && @http_response.code.to_i == 200
                   warn("The server appears to be blocking based on the " +
@@ -909,7 +909,7 @@ module FeedTools
             end
           rescue
           end
-          if FeedTools.configurations[:url_normalization_enabled]
+          if self.configurations[:url_normalization_enabled]
             @href = FeedTools::UriHelper.normalize_url(@href)
           end            
           @href.strip! unless @href.nil?
@@ -949,7 +949,7 @@ module FeedTools
         @title = FeedTools::HtmlHelper.process_text_construct(title_node,
           self.feed_type, self.feed_version)
         if self.feed_type == "atom" ||
-            FeedTools.configurations[:always_strip_wrapper_elements]
+            self.configurations[:always_strip_wrapper_elements]
           @title = FeedTools::HtmlHelper.strip_wrapper_element(@title)
         end
         @title = nil if @title.blank?
@@ -991,7 +991,7 @@ module FeedTools
         @subtitle = FeedTools::HtmlHelper.process_text_construct(
           subtitle_node, self.feed_type, self.feed_version)
         if self.feed_type == "atom" ||
-            FeedTools.configurations[:always_strip_wrapper_elements]
+            self.configurations[:always_strip_wrapper_elements]
           @subtitle = FeedTools::HtmlHelper.strip_wrapper_element(@subtitle)
         end
         if @subtitle.blank?
@@ -1148,7 +1148,7 @@ module FeedTools
           end
         rescue
         end
-        if FeedTools.configurations[:url_normalization_enabled]
+        if self.configurations[:url_normalization_enabled]
           @link = FeedTools::UriHelper.normalize_url(@link)
         end
         unless self.cache_object.nil?
@@ -1202,7 +1202,7 @@ module FeedTools
             end
           rescue
           end
-          if FeedTools.configurations[:url_normalization_enabled]
+          if self.configurations[:url_normalization_enabled]
             link_object.href =
               FeedTools::UriHelper.normalize_url(link_object.href)
           end
@@ -1632,12 +1632,12 @@ module FeedTools
           unless time_string.blank?
             @time = Time.parse(time_string).gmtime
           else
-            if FeedTools.configurations[:timestamp_estimation_enabled]
+            if self.configurations[:timestamp_estimation_enabled]
               @time = Time.now.gmtime
             end
           end
         rescue
-          if FeedTools.configurations[:timestamp_estimation_enabled]
+          if self.configurations[:timestamp_estimation_enabled]
             @time = Time.now.gmtime
           end
         end
@@ -1773,7 +1773,7 @@ module FeedTools
               end
             rescue
             end
-            if FeedTools.configurations[:url_normalization_enabled]
+            if self.configurations[:url_normalization_enabled]
               image.href = FeedTools::UriHelper.normalize_url(image.href)
             end            
             image.href.strip! unless image.href.nil?
@@ -1858,7 +1858,7 @@ module FeedTools
         @rights = FeedTools::HtmlHelper.process_text_construct(rights_node,
           self.feed_type, self.feed_version)
         if self.feed_type == "atom" ||
-            FeedTools.configurations[:always_strip_wrapper_elements]
+            self.configurations[:always_strip_wrapper_elements]
           @rights = FeedTools::HtmlHelper.strip_wrapper_element(@rights)
         end
       end
@@ -1967,10 +1967,10 @@ module FeedTools
       if @time_to_live.nil? || @time_to_live == 0
         # Default to one hour
         @time_to_live = 1.hour
-      elsif FeedTools.configurations[:max_ttl] != nil &&
-          FeedTools.configurations[:max_ttl] != 0 &&
-          @time_to_live >= FeedTools.configurations[:max_ttl].to_i
-        @time_to_live = FeedTools.configurations[:max_ttl].to_i
+      elsif self.configurations[:max_ttl] != nil &&
+          self.configurations[:max_ttl] != 0 &&
+          @time_to_live >= self.configurations[:max_ttl].to_i
+        @time_to_live = self.configurations[:max_ttl].to_i
       end
       @time_to_live = @time_to_live.round
       return @time_to_live
@@ -2057,7 +2057,7 @@ module FeedTools
           end
         rescue
         end
-        if FeedTools.configurations[:url_normalization_enabled]
+        if self.configurations[:url_normalization_enabled]
           @docs = FeedTools::UriHelper.normalize_url(@docs)
         end
       end
@@ -2168,12 +2168,12 @@ module FeedTools
       end
     
       # Sort the items
-      if FeedTools.configurations[:entry_sorting_property] == "time"
+      if self.configurations[:entry_sorting_property] == "time"
         @entries = @entries.sort do |a, b|
           (b.time or Time.utc(1970)) <=> (a.time or Time.utc(1970))
         end
-      elsif FeedTools.configurations[:entry_sorting_property] != nil
-        sorting_property = FeedTools.configurations[:entry_sorting_property]
+      elsif self.configurations[:entry_sorting_property] != nil
+        sorting_property = self.configurations[:entry_sorting_property]
         @entries = @entries.sort do |a, b|
           eval("a.#{sorting_property}") <=> eval("b.#{sorting_property}")
         end
@@ -2278,7 +2278,7 @@ module FeedTools
         xml_builder=Builder::XmlMarkup.new(
           :indent => 2, :escape_attrs => false))
       xml_builder.instruct! :xml, :version => "1.0",
-        :encoding => (FeedTools.configurations[:output_encoding] or "utf-8")
+        :encoding => (self.configurations[:output_encoding] or "utf-8")
       if feed_type.nil?
         feed_type = self.feed_type
       end
@@ -2358,7 +2358,7 @@ module FeedTools
             end
             xml_builder.tag!(
               "admin:generatorAgent",
-              "rdf:resource" => FeedTools.configurations[:generator_href])
+              "rdf:resource" => self.configurations[:generator_href])
             build_xml_hook(feed_type, feed_version, xml_builder)
           end
           unless self.images.blank?
@@ -2431,7 +2431,7 @@ module FeedTools
             end
             xml_builder.ttl((time_to_live / 1.minute).to_s)
             xml_builder.generator(
-              FeedTools.configurations[:generator_href])
+              self.configurations[:generator_href])
             build_xml_hook(feed_type, feed_version, xml_builder)
             unless items.nil?
               for item in items
@@ -2490,8 +2490,8 @@ module FeedTools
           unless self.rights.blank?
             xml_builder.rights(self.rights)
           end
-          xml_builder.generator(FeedTools.configurations[:generator_name] +
-            " - " + FeedTools.configurations[:generator_href])
+          xml_builder.generator(self.configurations[:generator_name] +
+            " - " + self.configurations[:generator_href])
           if self.id != nil
             unless FeedTools::UriHelper.is_uri? self.id
               if self.link != nil
@@ -2521,7 +2521,7 @@ module FeedTools
 
     # Persists the current feed state to the cache.
     def save
-      if self.options[:feed_cache].nil?
+      if self.configurations[:feed_cache].nil?
         # The cache is disabled for this feed, do nothing.
         return
       end
