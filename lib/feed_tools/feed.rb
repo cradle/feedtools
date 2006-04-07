@@ -468,9 +468,7 @@ module FeedTools
     # Returns a hash of the http headers from the response.
     def http_headers
       if @http_headers.blank?
-#        puts "Headers are blank, load from database!"
         if !self.cache_object.nil? && !self.cache_object.http_headers.nil?
-          puts "DB has: #{self.cache_object.http_headers}"
           @http_headers = YAML.load(self.cache_object.http_headers)
           @http_headers = {} unless @http_headers.kind_of? Hash
         else
