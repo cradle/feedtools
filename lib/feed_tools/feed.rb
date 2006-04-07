@@ -197,11 +197,14 @@ module FeedTools
         # Set up the appropriate http headers
         headers = {}
         unless self.http_headers.nil?
-          headers["If-None-Match"] =
-            self.http_headers['etag'] unless self.http_headers['etag'].nil?
-          headers["If-Modified-Since"] =
-            self.http_headers['last-modified'] unless
-            self.http_headers['last-modified'].nil?
+          unless self.http_headers['etag'].nil?
+            headers["If-None-Match"] =
+              self.http_headers['etag']
+          end
+          unless self.http_headers['last-modified'].nil?
+            headers["If-Modified-Since"] =
+              self.http_headers['last-modified']
+          end
         end
         unless self.configurations[:user_agent].nil?
           headers["User-Agent"] = self.configurations[:user_agent]
@@ -364,24 +367,24 @@ module FeedTools
             end
             self.last_retrieved = Time.now.gmtime
           end
-        rescue FeedAccessError
+        rescue FeedAccessError => error
           @live = false
           if self.feed_data.nil?
-            raise
+            raise error
           end
-        rescue Timeout::Error
+        rescue Timeout::Error => error
           # if we time out, do nothing, it should fall back to the feed_data
           # stored in the cache.
           @live = false
           if self.feed_data.nil?
-            raise
+            raise error
           end
-        rescue Errno::ECONNRESET
+        rescue Errno::ECONNRESET => error
           # if the connection gets reset by peer, oh well, fall back to the
           # feed_data stored in the cache
           @live = false
           if self.feed_data.nil?
-            raise
+            raise error
           end
         rescue => error
           # heck, if anything at all bad happens, fall back to the feed_data
@@ -465,7 +468,9 @@ module FeedTools
     # Returns a hash of the http headers from the response.
     def http_headers
       if @http_headers.blank?
+#        puts "Headers are blank, load from database!"
         if !self.cache_object.nil? && !self.cache_object.http_headers.nil?
+          puts "DB has: #{self.cache_object.http_headers}"
           @http_headers = YAML.load(self.cache_object.http_headers)
           @http_headers = {} unless @http_headers.kind_of? Hash
         else
@@ -2527,7 +2532,7 @@ module FeedTools
       end
       if self.http_headers['content-type'] =~ /text\/html/ ||
           self.http_headers['content-type'] =~ /application\/xhtml\+xml/
-        if self.title.nil && self.link.nil? && self.entries.blank?
+        if self.title.nil? && self.link.nil? && self.entries.blank?
           # Don't save html pages to the cache, it messes with
           # autodiscovery.
           return

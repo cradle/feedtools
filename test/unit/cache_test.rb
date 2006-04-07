@@ -45,7 +45,7 @@ class CacheTest < Test::Unit::TestCase
       slashdot_feed = FeedTools::Feed.open(
         'http://www.slashdot.org/index.rss')
       assert(slashdot_feed.feed_data != nil, "No content retrieved.")
-      assert(slashdot_feed.options[:feed_cache] != nil)
+      assert(slashdot_feed.configurations[:feed_cache] != nil)
       assert_equal(false, slashdot_feed.href.blank?)
       slashdot_feed.expire!
       slashdot_feed.expire!
@@ -54,13 +54,13 @@ class CacheTest < Test::Unit::TestCase
       slashdot_feed = FeedTools::Feed.open(
         'http://www.slashdot.org/index.rss')
       assert(slashdot_feed.feed_data != nil, "No content retrieved.")
-      assert(slashdot_feed.options[:feed_cache] != nil)
+      assert(slashdot_feed.configurations[:feed_cache] != nil)
       assert_equal(true, slashdot_feed.live?)
       assert_equal(false, slashdot_feed.href.blank?)
       slashdot_feed = FeedTools::Feed.open(
         'http://www.slashdot.org/index.rss')
       assert(slashdot_feed.feed_data != nil, "No content retrieved.")
-      assert(slashdot_feed.options[:feed_cache] != nil)
+      assert(slashdot_feed.configurations[:feed_cache] != nil)
       assert_equal(false, slashdot_feed.live?)
       assert_equal(false, slashdot_feed.href.blank?)
       
