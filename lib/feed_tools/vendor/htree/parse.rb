@@ -105,7 +105,9 @@ module HTree # :nodoc:
           end
         }
         if matched_elem
-          until matched_elem.equal? stack.last
+          # This line breaks in Rails 1.1.
+          #until matched_elem.equal? stack.last
+          until matched_elem.object_id == stack.last.object_id
             stagname, stag_raw_string, children = stack.pop
             stack.last[2] << [:elem, stag_raw_string, children]
           end
