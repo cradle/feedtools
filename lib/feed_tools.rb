@@ -134,8 +134,12 @@ begin
   require 'yaml'
   require 'base64'
 
-  require_gem('activesupport', '>= 1.1.1')
-  require_gem('activerecord', '>= 1.11.1')
+  if !defined?(ActiveSupport)
+    require_gem('activesupport', '>= 1.1.1')
+  end
+  if !defined?(ActiveRecord)
+    require_gem('activerecord', '>= 1.11.1')
+  end
 
   begin
     require_gem('uuidtools', '>= 0.1.2')
