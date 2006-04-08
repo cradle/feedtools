@@ -141,10 +141,18 @@ module FeedTools
                 autodiscovered_url, [self.href])
             rescue Exception
             end
-            self.feed_data = nil
-            self.href = autodiscovered_url
-            self.cache_object = nil
-            self.update!
+            if FeedTools.feed_cache.nil?
+              self.feed_data = nil
+              self.href = autodiscovered_url
+              self.cache_object = nil
+              self.update!
+            else
+              self.feed_data = nil
+              self.href = autodiscovered_url
+              self.cache_object =
+                FeedTools.feed_cache.find_by_href(autodiscovered_url)
+              self.update!
+            end
           end
         end
       end

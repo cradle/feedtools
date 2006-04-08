@@ -605,7 +605,8 @@ module FeedTools
       # This is technically very, very wrong.  But it saves oodles of
       # clock cycles, and probably works 99.999% of the time.
       html_document = HTree.parse_xml(
-        FeedTools::HtmlHelper.tidy_html(html.gsub(/<body>(.|\n)*<\/body>/, ""))).to_rexml
+        FeedTools::HtmlHelper.tidy_html(
+          html.gsub(/<body.*?>(.|\n)*<\/body>/, "<body>-</body>"))).to_rexml
       html_node = nil
       head_node = nil
       link_nodes = []
