@@ -24,6 +24,7 @@
 require 'rexml/document'
 require 'feed_tools/feed_item'
 require 'feed_tools/feed_structures'
+require 'feed_tools/helpers/retrieval_helper'
 require 'feed_tools/helpers/generic_helper'
 require 'feed_tools/helpers/xml_helper'
 require 'feed_tools/helpers/html_helper'
@@ -199,229 +200,67 @@ module FeedTools
     
       # No need for http headers unless we're actually doing http
       if retrieval_method == "http"
-        # Set up the appropriate http headers
-        headers = {}
-        unless self.http_headers.nil?
-          unless self.http_headers['etag'].nil?
-            headers["If-None-Match"] =
-              self.http_headers['etag']
-          end
-          unless self.http_headers['last-modified'].nil?
-            headers["If-Modified-Since"] =
-              self.http_headers['last-modified']
-          end
-        end
-        unless self.configurations[:user_agent].nil?
-          headers["User-Agent"] = self.configurations[:user_agent]
-        end
-
-        # The http feed access method
-        http_fetch = lambda do |feed_url, request_headers, redirect_limit,
-            response_chain, no_headers|
-          raise FeedAccessError, 'Redirect too deep' if redirect_limit == 0
-          feed_uri = nil
-          begin
-            feed_uri = URI.parse(feed_url)
-          rescue URI::InvalidURIError
-            # Uh, maybe try to fix it?
-            feed_uri = URI.parse(FeedTools::UriHelper.normalize_url(feed_url))
-          end
-          
-          begin
-            proxy_address = (self.configurations[:proxy_address] || nil)
-            proxy_port = (self.configurations[:proxy_port].to_i || nil)
-
-            http = Net::HTTP::Proxy(proxy_address, proxy_port).new(
-              feed_uri.host, (feed_uri.port or 80))
-            http.start do
-              final_uri = feed_uri.path 
-              final_uri += ('?' + feed_uri.query) if feed_uri.query
-              request_headers = {} if no_headers
-              response = http.request_get(final_uri, request_headers)
-
-              case response
-              when Net::HTTPSuccess
-                # We've reached the final destination, process all previous
-                # redirections, and see if we need to update the url.
-                for redirected_response in response_chain
-                  if redirected_response.last.code.to_i == 301
-                    # Reset the cache object or we may get duplicate entries
-                    self.cache_object = nil
-                    self.href = redirected_response.last['location']
-                  else
-                    # Jump out as soon as we hit anything that isn't a
-                    # permanently moved redirection.
-                    break
-                  end
-                end
-                response
-              when Net::HTTPRedirection
-                if response.code.to_i == 304
-                  response.error!
-                else
-                  if response['location'].nil?
-                    raise FeedAccessError,
-                      "No location to redirect to supplied: " + response.code
-                  end
-                  response_chain << [feed_url, response]
-                  new_location = response['location']
-                  if response_chain.assoc(new_location) != nil
-                    raise FeedAccessError,
-                      "Redirection loop detected: #{new_location}"
-                  end
-              
-                  # Find out if we've already seen the url we've been
-                  # redirected to.
-                  found_redirect = false
-                  begin
-                    cached_feed = FeedTools::Feed.open(new_location,
-                      :disable_update_from_remote => true)
-                    if cached_feed.cache_object != nil &&
-                        cached_feed.cache_object.new_record? != true
-                      if !cached_feed.expired? &&
-                          !cached_feed.http_headers.blank?
-                        # Copy the cached state
-                        self.href = cached_feed.href
-
-                        @feed_data = cached_feed.feed_data
-                        @feed_data_type = cached_feed.feed_data_type
-
-                        if @feed_data.blank?
-                          raise "Invalid cache data."
-                        end
-
-                        @title = nil; self.title
-                        @link = nil; self.link
-                        
-                        self.last_retrieved = cached_feed.last_retrieved
-                        self.http_headers = cached_feed.http_headers
-                        self.cache_object = cached_feed.cache_object
-                        @live = false
-                        found_redirect = true
-                      end
-                    end
-                  rescue
-                    # If anything goes wrong, ignore it.
-                  end
-                  unless found_redirect
-                    # TODO: deal with stupid people using relative urls
-                    # in Location header
-                    # =================================================
-                    http_fetch.call(new_location, http_headers,
-                      redirect_limit - 1, response_chain, no_headers)
-                  else
-                    response
-                  end
-                end
-              else
-                class << response
-                  def response_chain
-                    return @response_chain
-                  end
-                end
-                response.instance_variable_set("@response_chain",
-                  response_chain)
-                response.error!
-              end
-            end
-          rescue SocketError
-            raise FeedAccessError, 'Socket error prevented feed retrieval'
-          rescue Timeout::Error
-            raise FeedAccessError, 'Timeout while attempting to retrieve feed'
-          rescue Errno::ENETUNREACH
-            raise FeedAccessError, 'Network was unreachable'
-          rescue Errno::ECONNRESET
-            raise FeedAccessError, 'Connection was reset by peer'
-          end
-        end
-      
         begin
-          begin
-            @http_response = http_fetch.call(self.href, headers, 10, [], false)
-          rescue => error
-            if error.respond_to?(:response)
-              # You might not believe this, but...
-              #
-              # Under certain circumstances, web servers will try to block
-              # based on the User-Agent header.  This is *retarded*.  But
-              # we won't let their stupid error stop us!
-              #
-              # This is, of course, a quick-n-dirty hack.  But at least
-              # we get to blame other people's bad software and/or bad
-              # configuration files.
-              if error.response.code.to_i == 404 &&
-                  self.configurations[:user_agent] != nil
-                @http_response = http_fetch.call(self.href, {}, 10, [], true)
-                if @http_response != nil && @http_response.code.to_i == 200
-                  warn("The server appears to be blocking based on the " +
-                    "User-Agent header.  This is stupid, and you should " +
-                    "inform the webmaster of this.")
+          @http_response = (FeedTools::RetrievalHelper.http_get(
+            self.href, :feed_object => self) do |url, response|
+              # Find out if we've already seen the url we've been
+              # redirected to.
+              follow_redirect = true
+
+              begin
+                cached_feed = FeedTools::Feed.open(url,
+                  :disable_update_from_remote => true)
+                if cached_feed.cache_object != nil &&
+                    cached_feed.cache_object.new_record? != true
+                  if !cached_feed.expired? &&
+                      !cached_feed.http_headers.blank?
+                    # Copy the cached state
+                    self.href = cached_feed.href
+    
+                    @feed_data = cached_feed.feed_data
+                    @feed_data_type = cached_feed.feed_data_type
+    
+                    if @feed_data.blank?
+                      raise "Invalid cache data."
+                    end
+    
+                    @title = nil; self.title
+                    @link = nil; self.link
+                  
+                    self.last_retrieved = cached_feed.last_retrieved
+                    self.http_headers = cached_feed.http_headers
+                    self.cache_object = cached_feed.cache_object
+                    @live = false
+                    follow_redirect = false
+                  end
                 end
-              else
-                raise error
+              rescue
+                # If anything goes wrong, ignore it.
               end
-            else
-              raise error
-            end
-          end
-          unless @http_response.kind_of? Net::HTTPRedirection
+              follow_redirect
+            end)
+          case @http_response
+          when Net::HTTPSuccess
             @feed_data = self.http_response.body
             @http_headers = {}
             self.http_response.each_header do |key, value|
               self.http_headers[key.downcase] = value
             end
             self.last_retrieved = Time.now.gmtime
-          end
-        rescue FeedAccessError => error
-          @live = false
-          if self.feed_data.nil?
-            raise error
-          end
-        rescue Timeout::Error => error
-          # if we time out, do nothing, it should fall back to the feed_data
-          # stored in the cache.
-          @live = false
-          if self.feed_data.nil?
-            raise error
-          end
-        rescue Errno::ECONNRESET => error
-          # if the connection gets reset by peer, oh well, fall back to the
-          # feed_data stored in the cache
-          @live = false
-          if self.feed_data.nil?
-            raise error
-          end
-        rescue => error
-          # heck, if anything at all bad happens, fall back to the feed_data
-          # stored in the cache.
-        
-          # If we can, get the HTTPResponse...
-          @http_response = nil
-          if error.respond_to?(:each_header)
-            @http_response = error
-          end
-          if error.respond_to?(:response) &&
-              error.response.respond_to?(:each_header)
-            @http_response = error.response
-          end
-          if @http_response != nil
+            @live = true
+          when Net::HTTPNotModified
             @http_headers = {}
             self.http_response.each_header do |key, value|
               self.http_headers[key.downcase] = value
             end
-            if self.http_response.code.to_i == 304
-              self.last_retrieved = Time.now.gmtime
-            end
+            self.last_retrieved = Time.now.gmtime
+            @live = true
+          else
+            @live = false
           end
+        rescue Exception => error
           @live = false
           if self.feed_data.nil?
-            if error.respond_to?(:response) &&
-                error.response.respond_to?(:response_chain)
-              redirects = error.response.response_chain.map do |pair|
-                pair.first
-              end
-              error.message << (" - Redirects: " + redirects.inspect)
-            end
             raise error
           end
         end

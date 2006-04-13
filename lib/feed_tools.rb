@@ -21,7 +21,7 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
 
-if Object.const_defined?(:FEED_TOOLS_ENV)
+if Object.const_defined?(:FEED_TOOLS_NAMESPACES)
   warn("FeedTools may have been loaded improperly.  This may be caused " +
     "by the presence of the RUBYOPT environment variable or by using " +
     "load instead of require.  This can also be caused by missing " +
@@ -31,8 +31,6 @@ end
 FEED_TOOLS_ENV = ENV['FEED_TOOLS_ENV'] ||
                  ENV['RAILS_ENV'] ||
                  'development' # :nodoc:
-
-FEED_TOOLS_VERSION = "0.2.24"
 
 FEED_TOOLS_NAMESPACES = {
   "admin" => "http://webns.net/mvcb/",
@@ -95,6 +93,8 @@ $:.unshift(File.dirname(__FILE__))
 $:.unshift(File.dirname(__FILE__) + "/feed_tools/vendor")
 
 begin
+  require 'feed_tools/version'
+
   begin
     require 'iconv'
   rescue Object
@@ -194,10 +194,15 @@ module FeedTools
         :disable_update_from_remote => false,
         :proxy_address => nil,
         :proxy_port => nil,
-        :user_agent => "FeedTools/#{FEED_TOOLS_VERSION} " + 
+        :proxy_user => nil,
+        :proxy_password => nil,
+        :user_agent =>
+          "FeedTools/#{FeedTools::FEED_TOOLS_VERSION::STRING} " + 
           "+http://www.sporkmonger.com/projects/feedtools/",
-        :generator_name => "FeedTools/#{FEED_TOOLS_VERSION}",
-        :generator_href => "http://www.sporkmonger.com/projects/feedtools/",
+        :generator_name =>
+          "FeedTools/#{FeedTools::FEED_TOOLS_VERSION::STRING}",
+        :generator_href =>
+          "http://www.sporkmonger.com/projects/feedtools/",
         :tidy_enabled => false,
         :tidy_options => {},
         :idn_enabled => true,

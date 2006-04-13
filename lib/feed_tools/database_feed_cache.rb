@@ -51,14 +51,17 @@ module FeedTools
         begin
           possible_config_files = [
             "./config/database.yml",
-            "../config/database.yml",
             "./database.yml",
+            "../config/database.yml",
             "../database.yml",
-            "../../database.yml"
+            "../../config/database.yml",
+            "../../database.yml",
+            "../../../config/database.yml",
+            "../../../database.yml"
           ]
           database_config_file = nil
           for file in possible_config_files
-            if File.exists? file
+            if File.exists?(File.expand_path(file))
               database_config_file = file
               break
             end
@@ -109,9 +112,9 @@ module FeedTools
     # True if the appropriate database table already exists
     def DatabaseFeedCache.table_exists?
       begin
-        ActiveRecord::Base.connection.execute "select id, href, title, " +
+        ActiveRecord::Base.connection.execute("select id, href, title, " +
           "link, feed_data, feed_data_type, http_headers, last_retrieved " +
-          "from #{self.table_name()} limit 1"
+          "from #{self.table_name()} limit 1")
       rescue ActiveRecord::StatementInvalid
         return false
       rescue

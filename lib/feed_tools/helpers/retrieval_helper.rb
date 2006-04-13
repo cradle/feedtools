@@ -22,20 +22,218 @@
 #++
 
 require 'feed_tools'
+require 'feed_tools/helpers/uri_helper'
 require 'net/http'
 
 # TODO: Not used yet, don't load since it'll only be a performance hit
 #  require 'net/https'
 #  require 'net/ftp'
 
-# Stolen from the Universal Feed Parser
-FEED_TOOLS_ACCEPT_HEADER = "application/atom+xml,application/rdf+xml," +
-  "application/rss+xml,application/x-netcdf,application/xml;" +
-  "q=0.9,text/xml;q=0.2,*/*;q=0.1"
-
-# TODO: Refactor http_fetch and other methods.
 module FeedTools
   # Methods for pulling remote data
   module RetrievalHelper
+    # Stolen from the Universal Feed Parser
+    ACCEPT_HEADER = "application/atom+xml,application/rdf+xml," +
+      "application/rss+xml,application/x-netcdf,application/xml;" +
+      "q=0.9,text/xml;q=0.2,*/*;q=0.1"
+    
+    # Makes an HTTP request and returns the HTTP response.  Optionally
+    # takes a block that determines whether or not to follow a redirect.
+    # The block will be passed the HTTP redirect response as an argument.
+    def self.http_request(http_operation, url, options={}, &block)
+      response = nil
+      
+      options = {
+        :feed_object => nil,
+        :form_data => nil,
+        :request_headers => {},
+        :follow_redirects => true,
+        :redirect_limit => 10,
+        :response_chain => []
+      }.merge(options)
+      
+      if options[:redirect_limit] == 0
+        raise FeedAccessError, 'Redirect too deep'
+      end
+      
+      if options[:response_chain].blank? ||
+          !options[:response_chain].kind_of?(Array)
+        options[:response_chain] = []
+      end
+      
+      if !options[:request_headers].kind_of?(Hash)
+        options[:request_headers] = {}
+      end
+      if !options[:form_data].kind_of?(Hash)
+        options[:form_data] = nil
+      end
+
+      if options[:request_headers].blank? && options[:feed_object] != nil
+        options[:request_headers] = {}
+        unless options[:feed_object].http_headers.nil?
+          unless options[:feed_object].http_headers['etag'].nil?
+            options[:request_headers]["If-None-Match"] =
+              options[:feed_object].http_headers['etag']
+          end
+          unless options[:feed_object].http_headers['last-modified'].nil?
+            options[:request_headers]["If-Modified-Since"] =
+              options[:feed_object].http_headers['last-modified']
+          end
+        end
+        unless options[:feed_object].configurations[:user_agent].nil?
+          options[:request_headers]["User-Agent"] =
+            options[:feed_object].configurations[:user_agent]
+        end
+      end
+      if options[:request_headers]["Accept"].nil?
+        options[:request_headers]["Accept"] =
+          FeedTools::RetrievalHelper::ACCEPT_HEADER
+      end
+      if options[:request_headers]["User-Agent"].nil?
+        options[:request_headers]["User-Agent"] =
+          FeedTools.configurations[:user_agent]
+      end
+      
+      uri = nil
+      begin
+        uri = URI.parse(url)
+      rescue URI::InvalidURIError
+        # Uh, maybe try to fix it?
+        uri = URI.parse(FeedTools::UriHelper.normalize_url(url))
+      end
+      
+      begin
+        proxy_address = nil
+        proxy_port = nil
+        proxy_user = nil
+        proxy_password = nil
+        
+        if options[:feed_object] != nil
+          proxy_address =
+            options[:feed_object].configurations[:proxy_address] || nil
+          proxy_port =
+            options[:feed_object].configurations[:proxy_port].to_i || nil
+          proxy_user =
+            options[:feed_object].configurations[:proxy_user].to_i || nil
+          proxy_password =
+            options[:feed_object].configurations[:proxy_password].to_i || nil
+        end        
+        
+        # No need to check for nil
+        http = Net::HTTP::Proxy(
+          proxy_address, proxy_port, proxy_user, proxy_password).new(
+            uri.host, (uri.port or 80))
+        
+        path = uri.path 
+        path += ('?' + uri.query) if uri.query
+        
+        request_params = [path, options[:request_headers]]
+        if http_operation == :post
+          options[:form_data] = {} if options[:form_data].blank?
+          request_params << options[:form_data]
+        end
+        response = http.send(http_operation, *request_params)
+        
+        case response
+        when Net::HTTPSuccess
+          if options[:feed_object] != nil
+            # We've reached the final destination, process all previous
+            # redirections, and see if we need to update the url.
+            for redirected_response in options[:response_chain]
+              if redirected_response.last.code.to_i == 301
+                # Reset the cache object or we may get duplicate entries
+
+                # TODO: verify this line is necessary!
+#=============================================================================
+                options[:feed_object].cache_object = nil
+                
+                options[:feed_object].href =
+                  redirected_response.last['location']
+              else
+                # Jump out as soon as we hit anything that isn't a
+                # permanently moved redirection.
+                break
+              end
+            end
+          end
+        when Net::HTTPNotModified
+          # Do nothing, we just don't want it processed as a redirection
+        when Net::HTTPRedirection
+          if response['location'].nil?
+            raise FeedAccessError,
+              "No location to redirect to supplied for " + response.code
+          end
+          options[:response_chain] << [url, response]
+
+          redirected_location = response['location']
+          redirected_location = FeedTools::UriHelper.resolve_relative_uri(
+            redirected_location, [uri.host])
+          
+          if options[:response_chain].assoc(redirected_location) != nil
+            raise FeedAccessError,
+              "Redirection loop detected: #{redirected_location}"
+          end
+          
+          # Let the block handle redirects
+          follow_redirect = true
+          if block != nil
+            follow_redirect = block.call(redirected_location, response)
+          end
+          
+          if follow_redirect
+            response = FeedTools::RetrievalHelper.http_request(
+              http_operation,
+              redirected_location, 
+              options.merge(
+                {:redirect_limit => (options[:redirect_limit] - 1)}),
+              &block)
+          end
+        end
+      rescue SocketError
+        raise FeedAccessError, 'Socket error prevented feed retrieval'
+      rescue Timeout::Error
+        raise FeedAccessError, 'Timeout while attempting to retrieve feed'
+      rescue Errno::ENETUNREACH
+        raise FeedAccessError, 'Network was unreachable'
+      rescue Errno::ECONNRESET
+        raise FeedAccessError, 'Connection was reset by peer'
+      end
+      
+      if response != nil
+        class << response
+          def response_chain
+            return @response_chain
+          end
+        end
+        response.instance_variable_set("@response_chain",
+          options[:response_chain])
+      end
+      
+      return response
+    end
+    
+    # Makes an HTTP GET request and returns the HTTP response.  Optionally
+    # takes a block that determines whether or not to follow a redirect.
+    # The block will be passed the HTTP redirect response as an argument.
+    def self.http_get(url, options={}, &block)
+      return FeedTools::RetrievalHelper.http_request(
+        :get, url, options, &block)
+    end
+
+    # Makes an HTTP POST request and returns the HTTP response.  Optionally
+    # takes a block that determines whether or not to follow a redirect.
+    # The block will be passed the HTTP redirect response as an argument.
+    def self.http_post(url, options={}, &block)
+      return FeedTools::RetrievalHelper.http_request(
+        :post, url, options, &block)
+    end
+    
+    # Makes an HTTP HEAD request and returns the HTTP response.  Optionally
+    # takes a block that determines whether or not to follow a redirect.
+    # The block will be passed the HTTP redirect response as an argument.
+    def http_head(url, options={}, &block)
+      return FeedTools::RetrievalHelper.http_request(
+        :head, url, options, &block)
+    end
   end
 end

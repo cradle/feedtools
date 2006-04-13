@@ -2,10 +2,13 @@
  * fixed autodiscovery bugs
  * updated autodiscovery to handle relative uris
  * added per feed configuration
+ * rewrote http retrieval code
+ * supports authenticated http proxies
+ * supports basic http auth
  * fixed relative url resolution issues
  * corrected db schema files to match migration file
  * fixed bug in the save method
- * fixed some http bugs
+ * fixed some major http bugs
  * updated dependancies
  * no longer causes problems with frozen rails
 == FeedTools 0.2.23

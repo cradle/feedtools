@@ -24,7 +24,7 @@
 module FeedTools
   module DebugHelper
     # Forces a stack_trace without interfering with the program
-    def stack_trace
+    def self.stack_trace
       fork do
         ObjectSpace.each_object(Thread) do |th|
           th.raise Exception, "Stack Dump" unless Thread.current == th

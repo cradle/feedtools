@@ -6,14 +6,16 @@ require 'rake/packagetask'
 require 'rake/gempackagetask'
 require 'rake/contrib/rubyforgepublisher'
 
+require File.join(File.dirname(__FILE__), 'lib/feed_tools', 'version')
+
 PKG_NAME      = 'feedtools'
-PKG_VERSION   = '0.2.24'
+PKG_VERSION   = FeedTools::FEED_TOOLS_VERSION::STRING
 PKG_FILE_NAME = "#{PKG_NAME}-#{PKG_VERSION}"
 
 RELEASE_NAME  = "REL #{PKG_VERSION}"
 
 RUBY_FORGE_PROJECT = "feedtools"
-RUBY_FORGE_USER    = "vacindak"
+RUBY_FORGE_USER    = "sporkmonger"
 
 PKG_FILES = FileList[
     "lib/**/*", "test/**/*", "examples/**/*", "doc/**/*", "db/**/*",
@@ -142,7 +144,7 @@ end
 task :profile do
   $:.unshift(File.dirname(__FILE__) + '/lib')
   require 'feed_tools'
-  puts "Profiling FeedTools #{FEED_TOOLS_VERSION}..."
+  puts "Profiling FeedTools #{FeedTools::FEED_TOOLS_VERSION::STRING}..."
   command = 'ruby -rprofile -e \'' +
     '$:.unshift(File.dirname(__FILE__) + "/lib");' +
     'require "feed_tools";' +
