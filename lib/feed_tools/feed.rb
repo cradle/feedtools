@@ -78,6 +78,8 @@ module FeedTools
       # load the new feed
       feed.href = url
       feed.update! unless feed.configurations[:disable_update_from_remote]
+      Thread.pass
+      
       return feed
     end
     
@@ -100,6 +102,10 @@ module FeedTools
       if self.configurations[:disable_update_from_remote]
         # Don't do anything if this option is set
         return
+      end
+      if !FeedTools.feed_cache.nil? &&
+          !FeedTools.feed_cache.set_up_correctly?
+        FeedTools.feed_cache.initialize_cache()
       end
       if !FeedTools.feed_cache.nil? &&
           !FeedTools.feed_cache.set_up_correctly?
@@ -2397,6 +2403,7 @@ module FeedTools
           end
           self.cache_object.http_headers = self.http_headers.to_yaml
           self.cache_object.last_retrieved = self.last_retrieved
+          Thread.pass
           self.cache_object.save
         end
       end

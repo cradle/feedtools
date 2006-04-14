@@ -1,3 +1,5 @@
+== FeedTools 0.2.25
+ * better support for threaded applications
 == FeedTools 0.2.24
  * fixed autodiscovery bugs
  * updated autodiscovery to handle relative uris

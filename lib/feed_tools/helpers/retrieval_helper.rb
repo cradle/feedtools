@@ -132,7 +132,9 @@ module FeedTools
           options[:form_data] = {} if options[:form_data].blank?
           request_params << options[:form_data]
         end
+        Thread.pass
         response = http.send(http_operation, *request_params)
+        Thread.pass
         
         case response
         when Net::HTTPSuccess
