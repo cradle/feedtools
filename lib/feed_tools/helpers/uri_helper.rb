@@ -23,11 +23,12 @@
 
 require 'feed_tools'
 require 'uri'
-
+  
 module FeedTools
   # Generic url processing methods needed in numerous places throughout
   # FeedTools
   module UriHelper
+    
     # Returns true if the idn module can be used.
     def self.idn_enabled?
       # This is an override variable to keep idn from being used even if it

@@ -260,7 +260,7 @@ module FeedTools
               self.http_headers[key.downcase] = value
             end
             self.last_retrieved = Time.now.gmtime
-            @live = true
+            @live = false
           else
             @live = false
           end
@@ -2272,6 +2272,12 @@ module FeedTools
               xml_builder.description(description)
             else
               xml_builder.description
+            end
+            unless self.author.email.blank?
+              xml_builder.managingEditor(self.author.email)
+            end
+            unless self.publisher.email.blank?
+              xml_builder.webMaster(self.publisher.email)
             end
             unless self.published.blank?
               xml_builder.pubDate(self.published.rfc822)
