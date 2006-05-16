@@ -1273,6 +1273,21 @@ module FeedTools
               ], :select_result_value => true)
             )
           end
+          if @author.name.blank? && !@author.raw.blank? &&
+              !@author.email.blank?
+            name_scan = @author.raw.scan(
+              /"?([^"]*)"? ?[\(<].*#{@author.email}.*[\)>].*/)
+            if name_scan.flatten.size == 1
+              @author.name = name_scan.flatten[0].strip
+            end
+            if @author.name.blank?
+              name_scan = @author.raw.scan(
+                /.*#{@author.email} ?[\(<]"?([^"]*)"?[\)>].*/)
+              if name_scan.flatten.size == 1
+                @author.name = name_scan.flatten[0].strip
+              end
+            end
+          end
           @author.name = nil if @author.name.blank?
           @author.raw = nil if @author.raw.blank?
           @author.email = nil if @author.email.blank?
@@ -1839,10 +1854,14 @@ module FeedTools
             xml_builder.title(FeedTools::HtmlHelper.strip_html_tags(self.title))
           end
           unless self.link.blank?
-            xml_builder.link(link)
+            xml_builder.link(self.link)
           end
           unless self.author.nil? || self.author.name.nil?
             xml_builder.tag!("dc:creator", self.author.name)
+          end
+          unless self.author.nil? || self.author.email.nil? ||
+              self.author.name.nil?
+            xml_builder.author("#{self.author.email} (#{self.author.name})")
           end
           unless self.summary.blank?
             xml_builder.description(self.summary)

@@ -1313,6 +1313,21 @@ module FeedTools
               ], :select_result_value => true)
             )
           end
+          if @author.name.blank? && !@author.raw.blank? &&
+              !@author.email.blank?
+            name_scan = @author.raw.scan(
+              /"?([^"]*)"? ?[\(<].*#{@author.email}.*[\)>].*/)
+            if name_scan.flatten.size == 1
+              @author.name = name_scan.flatten[0].strip
+            end
+            if @author.name.blank?
+              name_scan = @author.raw.scan(
+                /.*#{@author.email} ?[\(<]"?([^"]*)"?[\)>].*/)
+              if name_scan.flatten.size == 1
+                @author.name = name_scan.flatten[0].strip
+              end
+            end
+          end
           @author.name = nil if @author.name.blank?
           @author.raw = nil if @author.raw.blank?
           @author.email = nil if @author.email.blank?
