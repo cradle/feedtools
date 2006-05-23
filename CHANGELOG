@@ -2,6 +2,8 @@
  * better support for threaded applications
  * generated rss 2.0 now includes author, managingEditor, webMaster elements
  * improved handling of author elements
+ * improved handling of http timeouts
+ * fixed issue with relative paths in the location header for http redirection
 == FeedTools 0.2.24
  * fixed autodiscovery bugs
  * updated autodiscovery to handle relative uris
