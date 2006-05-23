@@ -169,7 +169,7 @@ module FeedTools
 
           redirected_location = response['location']
           redirected_location = FeedTools::UriHelper.resolve_relative_uri(
-            redirected_location, [uri.host])
+            redirected_location, [uri.to_s])
           
           if options[:response_chain].assoc(redirected_location) != nil
             raise FeedAccessError,
@@ -193,7 +193,7 @@ module FeedTools
         end
       rescue SocketError
         raise FeedAccessError, 'Socket error prevented feed retrieval'
-      rescue Timeout::Error
+      rescue Timeout::Error, Errno::ETIMEDOUT
         raise FeedAccessError, 'Timeout while attempting to retrieve feed'
       rescue Errno::ENETUNREACH
         raise FeedAccessError, 'Network was unreachable'

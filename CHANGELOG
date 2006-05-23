@@ -1,6 +1,7 @@
 == FeedTools 0.2.25
  * better support for threaded applications
- * generated rss 2.0 now includes managingEditor and webMaster elements
+ * generated rss 2.0 now includes author, managingEditor, webMaster elements
+ * improved handling of author elements
 == FeedTools 0.2.24
  * fixed autodiscovery bugs
  * updated autodiscovery to handle relative uris
