@@ -231,6 +231,7 @@ module FeedTools
                     end
     
                     @title = nil; self.title
+                    self.href
                     @link = nil; self.link
                   
                     self.last_retrieved = cached_feed.last_retrieved
@@ -730,20 +731,24 @@ module FeedTools
           end
         end
         if override_href.call(@href) && self.feed_data != nil
+          for link_object in self.links
+            if link_object.rel == 'self'
+              if link_object.href != self.link ||
+                  (link_object.href =~ /xml/ ||
+                  link_object.href =~ /atom/ ||
+                  link_object.href =~ /feed/)
+                @href = link_object.href
+                @href_overridden = true
+                @link = nil
+                return @href
+              end
+            end
+          end
           # rdf:about is ordered last because a lot of people put the url to
           # the feed inside it instead of a link to their blog.
           # Ordering it last gives them as many chances as humanly possible
           # for them to redeem themselves.  If the link turns out to be the
           # same as the blog link, it will be reset to the original value.
-          for link_object in self.links
-            if link_object.rel == 'self'
-              if link_object.href != self.link
-                @href = link_object.href
-                @href_overridden = true
-                return @href
-              end
-            end
-          end
           @href = FeedTools::XmlHelper.try_xpaths(self.channel_node, [
             "admin:feed/@rdf:resource",
             "admin:feed/@resource",
@@ -776,6 +781,9 @@ module FeedTools
             @href = original_href
             @href_overridden = false
           end
+          if @href_overridden == true
+            @link = nil
+          end
         end
       end
       return @href
@@ -797,7 +805,8 @@ module FeedTools
           "atom:title",
           "title",
           "dc:title",
-          "channelTitle"
+          "channelTitle",
+          "TITLE"
         ])
         @title = FeedTools::HtmlHelper.process_text_construct(title_node,
           self.feed_type, self.feed_version)
@@ -828,6 +837,7 @@ module FeedTools
           "description",
           "summary",
           "abstract",
+          "ABSTRACT",
           "content:encoded",
           "encoded",
           "content",
@@ -953,19 +963,36 @@ module FeedTools
         max_score = 0
         for link_object in self.links.reverse
           score = 0
-          if FeedTools::HtmlHelper.html_type?(link_object.type)
-            score = score + 2
-          elsif link_object.type != nil
-            score = score - 1
+          next if link_object.href.nil?
+          if @href != nil && link_object.href == @href
+            score = score - 2
           end
-          if FeedTools::HtmlHelper.xml_type?(link_object.type)
-            score = score + 1
+          if link_object.type != nil
+            if (link_object.type =~ /image/ || link_object.type =~ /video/)
+              score = score - 2
+            end
+            if FeedTools::HtmlHelper.xml_type?(link_object.type)
+              score = score + 1
+            end
+            if FeedTools::HtmlHelper.html_type?(link_object.type)
+              score = score + 2
+            elsif link_object.type != nil
+              score = score - 1
+            end
+          end
+          if link_object.rel == "enclosure"
+            score = score - 2
           end
           if link_object.rel == "alternate"
             score = score + 1
           end
           if link_object.rel == "self"
             score = score - 1
+            if (link_object.href =~ /xml/ ||
+                link_object.href =~ /atom/ ||
+                link_object.href =~ /feed/)
+              score = score - 1
+            end
           end
           if score >= max_score
             max_score = score
@@ -1079,6 +1106,9 @@ module FeedTools
           unless link_object.rel.nil?
             link_object.rel = link_object.rel.downcase
           end
+          if link_object.rel.nil? && self.feed_type == "atom"
+            link_object.rel = "alternate"
+          end
           link_object.type = FeedTools::XmlHelper.try_xpaths(link_node, [
             "@atom10:type",
             "@atom03:type",
@@ -1116,6 +1146,7 @@ module FeedTools
               link_object.length = nil
             end
           end
+          @links = [] if @links.nil?
           @links << link_object
         end
       end
@@ -1134,10 +1165,13 @@ module FeedTools
           "@base"
         ], :select_result_value => true)
         if @base_uri.blank?
-          @base_uri =
-            FeedTools::GenericHelper.recursion_trap(:feed_base_uri) do
-              self.href
-            end
+          begin
+            @base_uri =
+              FeedTools::GenericHelper.recursion_trap(:feed_base_uri) do
+                self.href
+              end
+          rescue Exception
+          end
         end
         if !@base_uri.blank?
           @base_uri = FeedTools::UriHelper.normalize_url(@base_uri)
@@ -1956,7 +1990,13 @@ module FeedTools
         if @language.blank?
           @language = "en-us"
         end
+        @language.gsub!(/_/, "-")
         @language = @language.downcase
+        if @language.split('-').size > 1
+          @language =
+            "#{@language.split('-').first}-" +
+            "#{@language.split('-').last.upcase}"
+        end
       end
       return @language
     end

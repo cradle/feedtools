@@ -108,6 +108,52 @@ class AtomTest < Test::Unit::TestCase
         feed.images[0].url)
     }
     with_feed(:from_data => <<-FEED
+      <?xml version="1.0" encoding="utf-8"?>
+      <feed xmlns="http://www.w3.org/2005/Atom"
+        xmlns:thr="http://purl.org/syndication/thread/1.0">
+        <link rel="self" href="http://www.intertwingly.net/blog/index.atom"/>
+        <id>http://www.intertwingly.net/blog/index.atom</id>
+
+        <title>Sam Ruby</title>
+        <subtitle>It’s just data</subtitle>
+        <author>
+          <name>Sam Ruby</name>
+          <email>rubys@intertwingly.net</email>
+          <uri>.</uri>
+        </author>
+        <updated>2006-07-07T09:45:30-04:00</updated>
+        <link href="."/>
+      </feed>
+    FEED
+    ) { |feed|
+      assert_equal("http://www.intertwingly.net/blog/index.atom", feed.href)
+      assert_equal("http://www.intertwingly.net/blog/", feed.link)
+      assert_equal("http://www.intertwingly.net/blog/", feed.author.href)
+    }
+    with_feed(:from_data => <<-FEED
+      <?xml version="1.0" encoding="utf-8"?>
+      <feed xmlns="http://www.w3.org/2005/Atom"
+        xmlns:thr="http://purl.org/syndication/thread/1.0">
+        <link rel="self" href="http://www.intertwingly.net/blog/index.atom"/>
+        <id>http://www.intertwingly.net/blog/index.atom</id>
+
+        <title>Sam Ruby</title>
+        <subtitle>It’s just data</subtitle>
+        <author>
+          <name>Sam Ruby</name>
+          <email>rubys@intertwingly.net</email>
+          <uri>.</uri>
+        </author>
+        <updated>2006-07-07T09:45:30-04:00</updated>
+        <link href="."/>
+      </feed>
+    FEED
+    ) { |feed|
+      assert_equal("http://www.intertwingly.net/blog/", feed.link)
+      assert_equal("http://www.intertwingly.net/blog/index.atom", feed.href)
+      assert_equal("http://www.intertwingly.net/blog/", feed.author.href)
+    }
+    with_feed(:from_data => <<-FEED
       <feed>
         <entry xml:base="http://example.com/articles/">
           <title>Pain And Suffering</title>
