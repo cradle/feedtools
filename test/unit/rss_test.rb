@@ -28,7 +28,7 @@ class RssTest < Test::Unit::TestCase
     FEED
     ) { |feed|
       assert_not_nil feed.href
-      assert_not_nil feed.last_retrieved
+      assert_not_nil feed.title
     }
   end
   

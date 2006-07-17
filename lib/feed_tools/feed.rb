@@ -361,6 +361,7 @@ module FeedTools
     def encoding_from_feed_data
       if @encoding_from_feed_data.nil?
         raw_data = self.feed_data
+        return nil if raw_data.nil?
         encoding_from_xml_instruct = 
           raw_data.scan(
             /^<\?xml [^>]*encoding="([\w]*)"[^>]*\?>/
@@ -418,6 +419,24 @@ module FeedTools
       @feed_data = new_feed_data
       unless self.cache_object.nil?
         self.cache_object.feed_data = new_feed_data
+      end
+      ugly_redirect = FeedTools::XmlHelper.try_xpaths(self.xml_document, [
+        "redirect/newLocation/text()"
+      ], :select_result_value => true)
+      if !ugly_redirect.blank?
+        for var in self.instance_variables
+          self.instance_variable_set(var, nil)
+        end
+        @http_headers = {}
+        @feed_data = nil
+        self.href = ugly_redirect
+        if FeedTools.feed_cache.nil?
+          self.cache_object = nil
+        else
+          self.cache_object =
+            FeedTools.feed_cache.find_by_href(ugly_redirect)
+        end
+        self.update!
       end
     end
     
