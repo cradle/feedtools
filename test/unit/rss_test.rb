@@ -20,6 +20,18 @@ class RssTest < Test::Unit::TestCase
     }
   end
   
+  def test_radio_redirection
+    with_feed(:from_data => <<-FEED
+      <redirect>
+        <newLocation>http://www.slashdot.org/index.rss</newLocation>
+      </redirect>
+    FEED
+    ) { |feed|
+      assert_not_nil feed.href
+      assert_not_nil feed.last_retrieved
+    }
+  end
+  
   def test_feed_title
     with_feed(:from_file => 'wellformed/rss/channel_title.xml') { |feed|
       assert_equal("Example feed", feed.title)

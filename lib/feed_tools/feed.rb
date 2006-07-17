@@ -158,6 +158,21 @@ module FeedTools
             end
             self.update!
           end
+        else
+          ugly_redirect = FeedTools::XmlHelper.try_xpaths(self.xml_document, [
+            "redirect/newLocation/text()"
+          ], :select_result_value => true)
+          if !ugly_redirect.blank?
+            self.feed_data = nil
+            self.href = ugly_redirect
+            if FeedTools.feed_cache.nil?
+              self.cache_object = nil
+            else
+              self.cache_object =
+                FeedTools.feed_cache.find_by_href(ugly_redirect)
+            end
+            self.update!
+          end
         end
       end
     end
@@ -744,6 +759,7 @@ module FeedTools
               end
             end
           end
+          
           # rdf:about is ordered last because a lot of people put the url to
           # the feed inside it instead of a link to their blog.
           # Ordering it last gives them as many chances as humanly possible
@@ -755,7 +771,8 @@ module FeedTools
             "feed/@rdf:resource",
             "feed/@resource",
             "@rdf:about",
-            "@about"
+            "@about",
+            "newLocation/text()"
           ], :select_result_value => true) do |result|
             override_href.call(FeedTools::UriHelper.normalize_url(result))
           end
