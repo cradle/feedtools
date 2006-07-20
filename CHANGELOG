@@ -1,5 +1,7 @@
 == FeedTools 0.2.26
  * added support for retarded, ugly Radio redirects
+ * improved autodiscovery support
+ * fixed lazy evaluation issue
 == FeedTools 0.2.25
  * fixed self reference href bug
  * fixed primary link assignment heuristic
