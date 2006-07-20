@@ -21,6 +21,9 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
 
+require 'rubygems'
+require 'active_record'
+
 #= database_feed_cache.rb
 #
 # The <tt>DatabaseFeedCache</tt> is the default caching mechanism for

@@ -553,7 +553,13 @@ module REXML # :nodoc:
 			parser.variables = variables
 			path = "*" unless path
 			element = [element] unless element.kind_of? Array
-			parser.parse(path, element)
+			retried = false
+			begin
+  			parser.parse(path, element)
+  		rescue NoMethodError => error
+  		  retry if !retried
+  		  raise error
+  		end
     end
 
     def self.liberal_first(element, path=nil, namespaces={},
@@ -563,7 +569,13 @@ module REXML # :nodoc:
       parser.variables = variables
       path = "*" unless path
       element = [element] unless element.kind_of? Array
-      parser.parse(path, element)[0]
+			retried = false
+			begin
+        parser.parse(path, element)[0]
+  		rescue NoMethodError => error
+  		  retry if !retried
+  		  raise error
+  		end
     end
 
     def self.liberal_each(element, path=nil, namespaces={},
@@ -573,7 +585,13 @@ module REXML # :nodoc:
 			parser.variables = variables
 			path = "*" unless path
 			element = [element] unless element.kind_of? Array
-			parser.parse(path, element).each( &block )
+			retried = false
+			begin
+  			parser.parse(path, element).each( &block )
+  		rescue NoMethodError => error
+  		  retry if !retried
+  		  raise error
+  		end
     end
   end
   

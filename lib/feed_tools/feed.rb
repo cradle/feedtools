@@ -45,7 +45,7 @@ module FeedTools
       @href = nil
       @id = nil
       @title = nil
-      @description = nil
+      @subtitle = nil
       @link = nil
       @last_retrieved = nil
       @time_to_live = nil
@@ -174,6 +174,19 @@ module FeedTools
             self.update!
           end
         end
+        
+        # Reset everything that needs to be reset.
+        @xml_document = nil
+        @encoding_from_feed_data = nil
+        @root_node = nil
+        @channel_node = nil
+        @id = nil
+        @title = nil
+        @subtitle = nil
+        @copyright = nil
+        @link = nil
+        @time_to_live = nil
+        @entries = nil
       end
     end
   
@@ -346,7 +359,7 @@ module FeedTools
     
     # Returns the encoding that the feed was parsed with
     def encoding
-      if @encoding.nil?
+      if @encoding.blank?
         unless self.http_headers.blank?
           @encoding = "utf-8"
         else
@@ -359,7 +372,7 @@ module FeedTools
     # Returns the encoding of feed calculated only from the xml data.
     # I.e., the encoding we would come up with if we ignore RFC 3023.
     def encoding_from_feed_data
-      if @encoding_from_feed_data.nil?
+      if @encoding_from_feed_data.blank?
         raw_data = self.feed_data
         return nil if raw_data.nil?
         encoding_from_xml_instruct = 
@@ -2473,6 +2486,10 @@ module FeedTools
     def save
       if self.configurations[:feed_cache].nil?
         # The cache is disabled for this feed, do nothing.
+        return
+      end
+      if self.feed_data.blank? && self.http_headers.blank?
+        # There's no data, nothing to save.
         return
       end
       if self.http_headers['content-type'] =~ /text\/html/ ||
