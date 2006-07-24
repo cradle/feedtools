@@ -58,6 +58,7 @@ FEED_TOOLS_NAMESPACES = {
   "foaf" => "http://xmlns.com/foaf/0.1/",
   "foo" => "http://hsivonen.iki.fi/FooML",
   "fm" => "http://freshmeat.net/rss/fm/",
+  "gd" => "http://schemas.google.com/g/2005",
   "gr" => "http://www.google.com/schemas/reader/atom/",
   "itunes" => "http://www.itunes.com/dtds/podcast-1.0.dtd",
   "l" => "http://purl.org/rss/1.0/modules/link/",
