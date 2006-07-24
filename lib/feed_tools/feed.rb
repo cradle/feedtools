@@ -187,6 +187,10 @@ module FeedTools
         @link = nil
         @time_to_live = nil
         @entries = nil
+        
+        if self.configurations[:lazy_parsing_enabled] == false
+          self.full_parse()
+        end
       end
     end
   
@@ -338,7 +342,74 @@ module FeedTools
         end
       end
     end
+    
+    # Does a full parse of the feed.
+    def full_parse
+      self.href
+
+      self.cache_object
       
+      self.http_headers
+      self.encoding
+      self.feed_data_utf_8
+      self.xml_document
+      self.root_node
+      self.channel_node
+      
+      self.base_uri
+      self.feed_type
+      self.feed_version
+
+      self.entries
+
+      self.id
+      self.title
+      self.subtitle
+      self.links
+      self.link
+      self.icon
+      self.favicon
+      self.author
+      self.publisher
+      self.time
+      self.updated
+      self.published
+      self.categories
+      self.images
+      self.rights
+      self.time_to_live
+      self.generator
+      self.language
+
+      self.docs
+      self.text_input
+      self.cloud
+
+      self.itunes_summary
+      self.itunes_subtitle
+      self.itunes_author
+
+      self.media_text
+
+      self.explicit?
+      
+      self.entries.each { |entry| entry.full_parse() }
+
+      nil
+    end
+    
+    # Does a full parse, then serializes the feed object directly to the
+    # cache.
+    def serialize
+      @cache_object = nil
+      self.full_parse()
+    end
+    
+    # Deserializes the feed object from the cache
+    def deserialize
+      
+    end
+    
     # Returns the relevant information from an http request.
     def http_response
       return @http_response
@@ -446,8 +517,14 @@ module FeedTools
         if FeedTools.feed_cache.nil?
           self.cache_object = nil
         else
-          self.cache_object =
-            FeedTools.feed_cache.find_by_href(ugly_redirect)
+          begin
+            self.cache_object =
+              FeedTools.feed_cache.find_by_href(ugly_redirect)
+          rescue RuntimeError => error
+            if error.message =~ /sorry, too many clients already/
+              puts "BAAAAAAAAAAAAAAAAAAAAAAAAAAAAMF!!!!!"
+            end
+          end
         end
         self.update!
       end
@@ -584,9 +661,17 @@ module FeedTools
             if @href != nil
               begin
                 @cache_object = FeedTools.feed_cache.find_by_href(@href)
-              rescue
+              rescue RuntimeError => error
+                if error.message =~ /sorry, too many clients already/
+                  warn("There are too many connections to the database open.")
+                  raise error
+                else
+                  raise error
+                end
+              rescue => error
                 warn("The feed cache seems to be having trouble with the " +
                   "find_by_href method.  This may cause unexpected results.")
+                raise error
               end
             end
             if @cache_object.nil?
@@ -1425,6 +1510,12 @@ module FeedTools
             rescue
             end
           end
+          if FeedTools::XmlHelper.try_xpaths(author_node,
+              ["@gr:unknown-author"], :select_result_value => true) == "true"
+            if @author.name == "(author unknown)"
+              @author.name = nil
+            end
+          end
         end
         # Fallback on the itunes module if we didn't find an author name
         begin
@@ -1764,35 +1855,7 @@ module FeedTools
       end
       return @images
     end
-  
-    # Returns the feed's text input field
-    def text_input
-      if @text_input.nil?
-        @text_input = FeedTools::TextInput.new
-        text_input_node =
-          FeedTools::XmlHelper.try_xpaths(self.channel_node, ["textInput"])
-        unless text_input_node.nil?
-          @text_input.title =
-            FeedTools::XmlHelper.try_xpaths(text_input_node,
-              ["title/text()"],
-              :select_result_value => true)
-          @text_input.description =
-            FeedTools::XmlHelper.try_xpaths(text_input_node,
-              ["description/text()"],
-              :select_result_value => true)
-          @text_input.link =
-            FeedTools::XmlHelper.try_xpaths(text_input_node,
-              ["link/text()"],
-              :select_result_value => true)
-          @text_input.name =
-            FeedTools::XmlHelper.try_xpaths(text_input_node,
-              ["name/text()"],
-              :select_result_value => true)
-        end
-      end
-      return @text_input
-    end
-      
+
     # Returns the feed's copyright information
     def rights
       if @rights.nil?
@@ -1966,6 +2029,34 @@ module FeedTools
       @cloud = new_cloud
     end
   
+    # Returns the feed's text input field
+    def text_input
+      if @text_input.nil?
+        @text_input = FeedTools::TextInput.new
+        text_input_node =
+          FeedTools::XmlHelper.try_xpaths(self.channel_node, ["textInput"])
+        unless text_input_node.nil?
+          @text_input.title =
+            FeedTools::XmlHelper.try_xpaths(text_input_node,
+              ["title/text()"],
+              :select_result_value => true)
+          @text_input.description =
+            FeedTools::XmlHelper.try_xpaths(text_input_node,
+              ["description/text()"],
+              :select_result_value => true)
+          @text_input.link =
+            FeedTools::XmlHelper.try_xpaths(text_input_node,
+              ["link/text()"],
+              :select_result_value => true)
+          @text_input.name =
+            FeedTools::XmlHelper.try_xpaths(text_input_node,
+              ["name/text()"],
+              :select_result_value => true)
+        end
+      end
+      return @text_input
+    end
+    
     # Returns the feed generator
     def generator
       if @generator.nil?
@@ -2234,6 +2325,9 @@ module FeedTools
     def build_xml(feed_type=(self.feed_type or "atom"), feed_version=nil,
         xml_builder=Builder::XmlMarkup.new(
           :indent => 2, :escape_attrs => false))
+          
+      self.full_parse()
+      
       xml_builder.instruct! :xml, :version => "1.0",
         :encoding => (self.configurations[:output_encoding] or "utf-8")
       if feed_type.nil?

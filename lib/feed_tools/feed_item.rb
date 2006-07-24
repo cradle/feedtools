@@ -69,6 +69,47 @@ module FeedTools
       return parent_feed
     end
     
+    # Does a full parse of the feed item.
+    def full_parse
+      self.configurations
+      
+      self.encoding
+      self.xml_document
+      self.root_node
+      
+      self.feed_type
+      self.feed_version
+      
+      self.id
+      self.title
+      self.content
+      self.summary
+      self.links
+      self.link
+      self.comments
+      self.author
+      self.publisher
+      self.time
+      self.updated
+      self.published
+      self.source
+      self.categories
+      self.tags
+      self.images
+      self.rights
+
+      self.itunes_summary
+      self.itunes_subtitle
+      self.itunes_image_link
+      self.itunes_author
+      self.itunes_duration
+
+      self.media_text
+      self.media_thumbnail_link
+
+      self.explicit?
+    end
+    
     # Returns the load options for this feed.
     def configurations
       if @configurations.blank?
@@ -191,6 +232,10 @@ module FeedTools
     def id
       if @id.nil?
         @id = FeedTools::XmlHelper.try_xpaths(self.root_node, [
+          "atom10:id/@gr:original-id",
+          "atom03:id/@gr:original-id",
+          "atom:id/@gr:original-id",
+          "id/@gr:original-id",
           "atom10:id/text()",
           "atom03:id/text()",
           "atom:id/text()",
@@ -349,143 +394,6 @@ module FeedTools
       @summary = new_summary
     end
     
-    # Returns the contents of the itunes:summary element
-    def itunes_summary
-      if @itunes_summary.nil?
-        @itunes_summary = FeedTools::XmlHelper.try_xpaths(self.root_node, [
-          "itunes:summary/text()"
-        ], :select_result_value => true)
-        unless @itunes_summary.blank?
-          @itunes_summary = FeedTools::HtmlHelper.unescape_entities(@itunes_summary)
-          @itunes_summary = FeedTools::HtmlHelper.sanitize_html(@itunes_summary)
-          @itunes_summary.strip!
-        else
-          @itunes_summary = nil
-        end
-      end
-      return @itunes_summary
-    end
-
-    # Sets the contents of the itunes:summary element
-    def itunes_summary=(new_itunes_summary)
-      @itunes_summary = new_itunes_summary
-    end
-
-    # Returns the contents of the itunes:subtitle element
-    def itunes_subtitle
-      if @itunes_subtitle.nil?
-        @itunes_subtitle = FeedTools::XmlHelper.try_xpaths(self.root_node, [
-          "itunes:subtitle/text()"
-        ], :select_result_value => true)
-        unless @itunes_subtitle.blank?
-          @itunes_subtitle = FeedTools::HtmlHelper.unescape_entities(@itunes_subtitle)
-          @itunes_subtitle = FeedTools::HtmlHelper.sanitize_html(@itunes_subtitle)
-          @itunes_subtitle.strip!
-        else
-          @itunes_subtitle = nil
-        end
-      end
-      return @itunes_subtitle
-    end
-
-    # Sets the contents of the itunes:subtitle element
-    def itunes_subtitle=(new_itunes_subtitle)
-      @itunes_subtitle = new_itunes_subtitle
-    end
-
-    # Returns the contents of the media:text element
-    def media_text
-      if @media_text.nil?
-        @media_text = FeedTools::XmlHelper.try_xpaths(self.root_node, [
-          "media:text/text()"
-        ], :select_result_value => true)
-        unless @media_text.blank?
-          @media_text = FeedTools::HtmlHelper.unescape_entities(@media_text)
-          @media_text = FeedTools::HtmlHelper.sanitize_html(@media_text)
-          @media_text.strip!
-        else
-          @media_text = nil
-        end
-      end
-      return @media_text
-    end
-
-    # Sets the contents of the media:text element
-    def media_text=(new_media_text)
-      @media_text = new_media_text
-    end
-
-    # Returns the feed item link
-    def link
-      if @link.nil?
-        max_score = 0
-        for link_object in self.links.reverse
-          score = 0
-          if FeedTools::HtmlHelper.html_type?(link_object.type)
-            score = score + 2
-          elsif link_object.type != nil
-            score = score - 1
-          end
-          if FeedTools::HtmlHelper.xml_type?(link_object.type)
-            score = score + 1
-          end
-          if link_object.rel == "alternate"
-            score = score + 1
-          end
-          if link_object.rel == "self"
-            score = score - 1
-          end
-          if score >= max_score
-            max_score = score
-            @link = link_object.href
-          end
-        end
-        if @link.blank?
-          @link = FeedTools::XmlHelper.try_xpaths(self.root_node, [
-            "@href",
-            "@rdf:about",
-            "@about"
-          ], :select_result_value => true)
-        end
-        if @link.blank?
-          if FeedTools::UriHelper.is_uri?(self.id) &&
-              (self.id =~ /^http/)
-            @link = self.id
-          end
-        end
-        if !@link.blank?
-          @link = FeedTools::HtmlHelper.unescape_entities(@link)
-        end
-        @link = self.comments if @link.blank?
-        @link = nil if @link.blank?
-        begin
-          if !(@link =~ /^file:/) &&
-              !FeedTools::UriHelper.is_uri?(@link)
-            stored_base_uri =
-              FeedTools::GenericHelper.recursion_trap(:feed_link) do
-                self.feed.base_uri if self.feed != nil
-              end
-            root_base_uri = nil
-            unless self.root_node.nil?
-              root_base_uri = self.root_node.base_uri
-            end
-            @link = FeedTools::UriHelper.resolve_relative_uri(
-              @link, [root_base_uri,stored_base_uri])
-          end
-        rescue
-        end
-        if self.configurations[:url_normalization_enabled]
-          @link = FeedTools::UriHelper.normalize_url(@link)
-        end
-      end
-      return @link
-    end
-    
-    # Sets the feed item link
-    def link=(new_link)
-      @link = new_link
-    end
-    
     # Returns the links collection
     def links
       if @links.nil?
@@ -596,7 +504,173 @@ module FeedTools
     def links=(new_links)
       @links = new_links
     end
-        
+    
+    # Returns the feed item link
+    def link
+      if @link.nil?
+        max_score = 0
+        for link_object in self.links.reverse
+          score = 0
+          if FeedTools::HtmlHelper.html_type?(link_object.type)
+            score = score + 2
+          elsif link_object.type != nil
+            score = score - 1
+          end
+          if FeedTools::HtmlHelper.xml_type?(link_object.type)
+            score = score + 1
+          end
+          if link_object.rel == "alternate"
+            score = score + 1
+          end
+          if link_object.rel == "self"
+            score = score - 1
+          end
+          if score >= max_score
+            max_score = score
+            @link = link_object.href
+          end
+        end
+        if @link.blank?
+          @link = FeedTools::XmlHelper.try_xpaths(self.root_node, [
+            "@href",
+            "@rdf:about",
+            "@about"
+          ], :select_result_value => true)
+        end
+        if @link.blank?
+          if FeedTools::UriHelper.is_uri?(self.id) &&
+              (self.id =~ /^http/)
+            @link = self.id
+          end
+        end
+        if !@link.blank?
+          @link = FeedTools::HtmlHelper.unescape_entities(@link)
+        end
+        @link = self.comments if @link.blank?
+        @link = nil if @link.blank?
+        begin
+          if !(@link =~ /^file:/) &&
+              !FeedTools::UriHelper.is_uri?(@link)
+            stored_base_uri =
+              FeedTools::GenericHelper.recursion_trap(:feed_link) do
+                self.feed.base_uri if self.feed != nil
+              end
+            root_base_uri = nil
+            unless self.root_node.nil?
+              root_base_uri = self.root_node.base_uri
+            end
+            @link = FeedTools::UriHelper.resolve_relative_uri(
+              @link, [root_base_uri,stored_base_uri])
+          end
+        rescue
+        end
+        if self.configurations[:url_normalization_enabled]
+          @link = FeedTools::UriHelper.normalize_url(@link)
+        end
+      end
+      return @link
+    end
+    
+    # Sets the feed item link
+    def link=(new_link)
+      @link = new_link
+    end
+    
+    # Returns the url for posting comments
+    def comments
+      if @comments.nil?
+        @comments = FeedTools::XmlHelper.try_xpaths(self.root_node, ["comments/text()"],
+          :select_result_value => true)
+        begin
+          if !(@comments =~ /^file:/) &&
+              !FeedTools::UriHelper.is_uri?(@comments)
+            root_base_uri = nil
+            unless self.root_node.nil?
+              root_base_uri = self.root_node.base_uri
+            end
+            @comments = FeedTools::UriHelper.resolve_relative_uri(
+              @comments, [root_base_uri, self.base_uri])
+          end
+        rescue
+        end
+        if self.configurations[:url_normalization_enabled]
+          @comments = FeedTools::UriHelper.normalize_url(@comments)
+        end
+      end
+      return @comments
+    end
+    
+    # Sets the url for posting comments
+    def comments=(new_comments)
+      @comments = new_comments
+    end
+
+    # Returns the contents of the itunes:summary element
+    def itunes_summary
+      if @itunes_summary.nil?
+        @itunes_summary = FeedTools::XmlHelper.try_xpaths(self.root_node, [
+          "itunes:summary/text()"
+        ], :select_result_value => true)
+        unless @itunes_summary.blank?
+          @itunes_summary = FeedTools::HtmlHelper.unescape_entities(@itunes_summary)
+          @itunes_summary = FeedTools::HtmlHelper.sanitize_html(@itunes_summary)
+          @itunes_summary.strip!
+        else
+          @itunes_summary = nil
+        end
+      end
+      return @itunes_summary
+    end
+
+    # Sets the contents of the itunes:summary element
+    def itunes_summary=(new_itunes_summary)
+      @itunes_summary = new_itunes_summary
+    end
+
+    # Returns the contents of the itunes:subtitle element
+    def itunes_subtitle
+      if @itunes_subtitle.nil?
+        @itunes_subtitle = FeedTools::XmlHelper.try_xpaths(self.root_node, [
+          "itunes:subtitle/text()"
+        ], :select_result_value => true)
+        unless @itunes_subtitle.blank?
+          @itunes_subtitle = FeedTools::HtmlHelper.unescape_entities(@itunes_subtitle)
+          @itunes_subtitle = FeedTools::HtmlHelper.sanitize_html(@itunes_subtitle)
+          @itunes_subtitle.strip!
+        else
+          @itunes_subtitle = nil
+        end
+      end
+      return @itunes_subtitle
+    end
+
+    # Sets the contents of the itunes:subtitle element
+    def itunes_subtitle=(new_itunes_subtitle)
+      @itunes_subtitle = new_itunes_subtitle
+    end
+
+    # Returns the contents of the media:text element
+    def media_text
+      if @media_text.nil?
+        @media_text = FeedTools::XmlHelper.try_xpaths(self.root_node, [
+          "media:text/text()"
+        ], :select_result_value => true)
+        unless @media_text.blank?
+          @media_text = FeedTools::HtmlHelper.unescape_entities(@media_text)
+          @media_text = FeedTools::HtmlHelper.sanitize_html(@media_text)
+          @media_text.strip!
+        else
+          @media_text = nil
+        end
+      end
+      return @media_text
+    end
+
+    # Sets the contents of the media:text element
+    def media_text=(new_media_text)
+      @media_text = new_media_text
+    end
+
     # Returns a list of the feed item's categories
     def categories
       if @categories.nil?
@@ -1302,6 +1376,12 @@ module FeedTools
             rescue
             end
           end
+          if FeedTools::XmlHelper.try_xpaths(author_node,
+              ["@gr:unknown-author"], :select_result_value => true) == "true"
+            if @author.name == "(author unknown)"
+              @author.name = nil
+            end
+          end
         end
         # Fallback on the itunes module if we didn't find an author name
         begin
@@ -1630,36 +1710,8 @@ module FeedTools
     def published=(new_published)
       @published = new_published
     end
-        
-    # Returns the url for posting comments
-    def comments
-      if @comments.nil?
-        @comments = FeedTools::XmlHelper.try_xpaths(self.root_node, ["comments/text()"],
-          :select_result_value => true)
-        begin
-          if !(@comments =~ /^file:/) &&
-              !FeedTools::UriHelper.is_uri?(@comments)
-            root_base_uri = nil
-            unless self.root_node.nil?
-              root_base_uri = self.root_node.base_uri
-            end
-            @comments = FeedTools::UriHelper.resolve_relative_uri(
-              @comments, [root_base_uri, self.base_uri])
-          end
-        rescue
-        end
-        if self.configurations[:url_normalization_enabled]
-          @comments = FeedTools::UriHelper.normalize_url(@comments)
-        end
-      end
-      return @comments
-    end
     
-    # Sets the url for posting comments
-    def comments=(new_comments)
-      @comments = new_comments
-    end
-    
+    # TODO: FIX ME!  This code is completely wrong.
     # The source that this post was based on
     def source
       if @source.nil?
@@ -1796,6 +1848,9 @@ module FeedTools
     def build_xml(feed_type=(self.feed.feed_type or "atom"), version=nil,
         xml_builder=Builder::XmlMarkup.new(
           :indent => 2, :escape_attrs => false))
+          
+      self.full_parse()
+      
       if feed_type == "rss" && (version == nil || version == 0.0)
         version = 1.0
       elsif feed_type == "atom" && (version == nil || version == 0.0)

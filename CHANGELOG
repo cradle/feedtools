@@ -1,3 +1,9 @@
+== FeedTools 0.2.27
+ * added support for Google reader API elements
+ * added better support for copyright information
+ * added method to allow feeds and feed items to override lazy parsing
+ * added configuration setting to override lazy parsing
+ * added serialization feature to allow preparsing with FeedUpdater
 == FeedTools 0.2.26
  * added support for retarded, ugly Radio redirects
  * improved autodiscovery support

@@ -222,6 +222,11 @@ class RssTest < Test::Unit::TestCase
     with_feed(:from_file => 'wellformed/rss/channel_dc_rights.xml') { |feed|
       assert_equal("Example copyright", feed.copyright)
     }
+
+    # temp
+    with_feed(:from_file => 'wellformed/rss/channel_dc_rights.xml') { |feed|
+      assert_equal("Example copyright", feed.license)
+    }
   end
   
   def test_feed_cloud
