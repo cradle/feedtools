@@ -1210,6 +1210,14 @@ module FeedTools
           unless enclosure.categories.nil?
             enclosure.categories.uniq!
           end
+          
+          # Normalize enclosure URIs
+          if !enclosure.href.blank?
+            enclosure.href =
+              FeedTools::UriHelper.normalize_url(enclosure.href)
+          else
+            enclosure.href = nil
+          end
         end
         
         # And finally, now things get complicated.  This is where we make

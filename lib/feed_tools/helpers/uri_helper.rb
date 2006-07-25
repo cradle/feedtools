@@ -59,13 +59,13 @@ module FeedTools
     # to be.  Also translates from the feed: and rss: pseudo-protocols to the
     # http: protocol.
     def self.normalize_url(url)
-      if url.kind_of?(URI)
+      if !url.kind_of?(String)
         url = url.to_s
       end
       if url.blank?
         return nil
       end
-      normalized_url = CGI.unescape(url.strip)
+      normalized_url = FeedTools::URI.parse(url.strip).normalize.to_s
 
       # if a url begins with the '/' character, it only makes sense that they
       # meant to be using a file:// url.  Fix it for them.
@@ -110,55 +110,9 @@ module FeedTools
         if normalized_url == "http://"
           return nil
         end
-        begin
-          scheme, host_part, path =
-            normalized_url.scan(/^(https?):\/\/([^\/]+)\/(.*)/i).flatten
-          if scheme != nil && host_part != nil && path != nil
-            scheme = scheme.downcase
-            if FeedTools::UriHelper.idn_enabled?
-              host_part =
-                IDN::Idna.toASCII(host_part)
-            end
-            new_path = ""
-            for index in 0...path.size
-              if path[index] <= 32 || path[index] >= 126
-                new_path << ("%" + path[index].to_s(16).upcase)
-              else
-                new_path << path[index..index]
-              end
-            end
-            path = new_path
-            normalized_url = scheme + "://" + host_part + "/" + path
-          end
-        rescue Object
-        end
-        begin
-          feed_uri = URI.parse(normalized_url)
-          if feed_uri.scheme == nil
-            feed_uri.scheme = "http"
-          end
-          if feed_uri.path.blank?
-            feed_uri.path = "/"
-          end
-          if (feed_uri.path =~ /^[\/]+/) == 0
-            feed_uri.path.gsub!(/^[\/]+/, "/")
-          end
-          while (feed_uri.path =~ /^\/\.\./)
-            feed_uri.path.gsub!(/^\/\.\./, "")
-          end
-          if feed_uri.path.blank?
-            feed_uri.path = "/"
-          end
-          feed_uri.host.downcase!
-          normalized_url = feed_uri.to_s
-        rescue URI::InvalidURIError
-        end
       end
-
-      # We can't do a proper set of escaping, so this will
-      # have to do.
-      normalized_url.gsub!(/%20/, " ")
-      normalized_url.gsub!(/ /, "%20")
+      normalized_url =
+        FeedTools::URI.parse(normalized_url.strip).normalize.to_s
 
       return normalized_url
     end

@@ -7,5 +7,7 @@
     feed_data         TEXT DEFAULT NULL,
     feed_data_type    VARCHAR(20) DEFAULT NULL,
     http_headers      TEXT DEFAULT NULL,
-    last_retrieved    DATETIME DEFAULT NULL
+    last_retrieved    DATETIME DEFAULT NULL,
+    time_to_live      INTEGER DEFAULT NULL,
+    serialized        TEXT DEFAULT NULL
   );

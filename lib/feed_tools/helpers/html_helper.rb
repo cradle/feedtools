@@ -416,6 +416,7 @@ module FeedTools
                 href = attribute.value
                 href = FeedTools::UriHelper.resolve_relative_uri(
                   href, [html_node.base_uri] | base_uri_sources)
+                href = FeedTools::UriHelper.normalize_url(href)
                 html_node.attribute(
                   element_attribute_pair[1]).instance_variable_set(
                     "@value", href)

@@ -120,6 +120,7 @@ begin
   end  
 
   require 'feed_tools/vendor/htree'
+  require 'feed_tools/vendor/uri'
 
   require 'net/http'
 

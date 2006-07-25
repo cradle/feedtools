@@ -9,6 +9,8 @@ class AddFeedToolsTables < ActiveRecord::Migration
       t.column :feed_data_type, :string
       t.column :http_headers, :text
       t.column :last_retrieved, :datetime
+      t.column :time_to_live, :integer
+      t.column :serialized, :text
     end
   end
 

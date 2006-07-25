@@ -1,4 +1,7 @@
 == FeedTools 0.2.27
+ * now uses the URI class from GentleCMS
+ * full support for IRIs
+ * schema changed to allow additional functionality
  * added support for Google reader API elements
  * added support for Google data format
  * added better support for copyright information

@@ -8,5 +8,7 @@
     `feed_data_type`  varchar(20) default NULL,
     `http_headers`    text default NULL,
     `last_retrieved`  datetime default NULL,
+    `time_to_live`    int(10) unsigned NULL,
+    `serialized`       longtext default NULL,
     PRIMARY KEY  (`id`)
   )
