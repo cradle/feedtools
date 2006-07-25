@@ -72,7 +72,7 @@ module FeedTools
       if feed_configurations[:feed_cache] != nil && FeedTools.feed_cache.nil?
         raise(ArgumentError, "There is currently no caching mechanism set. " +
           "Cannot retrieve cached feeds.")
-      else
+      elsif feed_configurations[:serialization_enabled] == true
         # We've got a caching mechanism available
         cache_object = FeedTools.feed_cache.find_by_href(href)
         begin
