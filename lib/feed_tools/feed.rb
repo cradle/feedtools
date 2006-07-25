@@ -58,29 +58,70 @@ module FeedTools
     # Loads the feed specified by the url, pulling the data from the
     # cache if it hasn't expired.  Options supplied will override the
     # default options.
-    def Feed.open(url, options={})
+    def Feed.open(href, options={})
       FeedTools::GenericHelper.validate_options(
         FeedTools.configurations.keys, options.keys)
 
-      # create the new feed
-      feed = FeedTools::Feed.new
+      # clean up the url
+      href = FeedTools::UriHelper.normalize_url(href)
 
-      feed.configurations = FeedTools.configurations.merge(options)
+      feed_configurations = FeedTools.configurations.merge(options)
+      cache_object = nil
+      deserialized_feed = nil
       
-      if feed.configurations[:feed_cache] != nil && FeedTools.feed_cache.nil?
+      if feed_configurations[:feed_cache] != nil && FeedTools.feed_cache.nil?
         raise(ArgumentError, "There is currently no caching mechanism set. " +
           "Cannot retrieve cached feeds.")
+      else
+        # We've got a caching mechanism available
+        cache_object = FeedTools.feed_cache.find_by_href(href)
+        begin
+          if cache_object != nil && cache_object.serialized != nil
+            # If we've got a cache hit, deserialize
+            expired = true
+            if cache_object.time_to_live == nil
+              cache_object.time_to_live = 1.hour
+              cache_object.save
+            end
+            if (cache_object.last_retrieved == nil)
+              expired = true
+            elsif (cache_object.time_to_live < 30.minutes)
+              expired =
+                (cache_object.last_retrieved + 30.minutes) < Time.now.gmtime
+            else
+              expired =
+                (cache_object.last_retrieved + cache_object.time_to_live) <
+                  Time.now.gmtime
+            end
+            if !expired
+              require 'yaml'
+              deserialized_feed = YAML.load(cache_object.serialized)
+              deserialized_feed.cache_object = cache_object
+              Thread.pass
+            end
+          end
+        rescue Exception
+        end
       end
       
-      # clean up the url
-      url = FeedTools::UriHelper.normalize_url(url)
+      if deserialized_feed == nil
+        # create the new feed
+        feed = FeedTools::Feed.new
 
-      # load the new feed
-      feed.href = url
-      feed.update! unless feed.configurations[:disable_update_from_remote]
-      Thread.pass
+        feed.configurations = feed_configurations
+
+        # load the new feed
+        feed.href = href
+        if cache_object != nil
+          feed.cache_object = cache_object
+        end
+        feed.update! unless feed.configurations[:disable_update_from_remote]
+        Thread.pass
       
-      return feed
+        return feed
+      else
+        return deserialized_feed
+      end
     end
     
     # Returns the load options for this feed.
@@ -400,16 +441,21 @@ module FeedTools
     
     # Does a full parse, then serializes the feed object directly to the
     # cache.
-    def serialize
+    def serialize_to_cache
       @cache_object = nil
       self.full_parse()
+      require 'yaml'
+      serialized_feed = YAML.dump(self)
+      if self.cache_object != nil
+        begin
+          self.cache_object.serialized = serialized_feed
+          self.cache_object.save
+        rescue Exception
+        end
+      end
+      return nil
     end
-    
-    # Deserializes the feed object from the cache
-    def deserialize
-      
-    end
-    
+        
     # Returns the relevant information from an http request.
     def http_response
       return @http_response
@@ -522,8 +568,9 @@ module FeedTools
               FeedTools.feed_cache.find_by_href(ugly_redirect)
           rescue RuntimeError => error
             if error.message =~ /sorry, too many clients already/
-              puts "BAAAAAAAAAAAAAAAAAAAAAAAAAAAAMF!!!!!"
+              warn("There are too many connections to the database open.")
             end
+            raise error
           end
         end
         self.update!
@@ -863,18 +910,29 @@ module FeedTools
           end
         end
         if override_href.call(@href) && self.feed_data != nil
-          for link_object in self.links
-            if link_object.rel == 'self'
-              if link_object.href != self.link ||
-                  (link_object.href =~ /xml/ ||
-                  link_object.href =~ /atom/ ||
-                  link_object.href =~ /feed/)
-                @href = link_object.href
-                @href_overridden = true
-                @link = nil
-                return @href
+          begin
+            links = FeedTools::GenericHelper.recursion_trap(:feed_href) do
+              self.links
+            end
+            link = FeedTools::GenericHelper.recursion_trap(:feed_href) do
+              self.link
+            end
+            if links != nil
+              for link_object in links
+                if link_object.rel == 'self'
+                  if link_object.href != link ||
+                      (link_object.href =~ /xml/ ||
+                      link_object.href =~ /atom/ ||
+                      link_object.href =~ /feed/)
+                    @href = link_object.href
+                    @href_overridden = true
+                    @link = nil
+                    return @href
+                  end
+                end
               end
             end
+          rescue Exception
           end
           
           # rdf:about is ordered last because a lot of people put the url to
