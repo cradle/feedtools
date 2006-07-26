@@ -92,7 +92,7 @@ FEED_TOOLS_NAMESPACES = {
 }
 
 $:.unshift(File.dirname(__FILE__))
-$:.unshift(File.dirname(__FILE__) + "/feed_tools/vendor")
+$: << (File.dirname(__FILE__) + "/feed_tools/vendor")
 
 begin
   require 'feed_tools/version'
