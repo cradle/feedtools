@@ -71,6 +71,7 @@ class HelperTest < Test::Unit::TestCase
   end
   
   def test_normalize_url
+    assert_equal("", FeedTools::UriHelper.normalize_url(""))
     assert_equal("http://slashdot.org/",
       FeedTools::UriHelper.normalize_url("slashdot.org"))
     assert_equal("http://example.com/index.php",

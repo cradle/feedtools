@@ -576,6 +576,14 @@ module FeedTools
         end
         self.update!
       end
+      
+      # Get these things parsed in the correct order to avoid the retardedly
+      # painful corecursion issues.
+      self.href
+      @links = nil
+      @link = nil
+      self.links
+      self.link
     end
     
     # Returns the feed's raw data as utf-8.
@@ -927,6 +935,7 @@ module FeedTools
                       link_object.href =~ /feed/)
                     @href = link_object.href
                     @href_overridden = true
+                    @links = nil
                     @link = nil
                     return @href
                   end
@@ -935,6 +944,8 @@ module FeedTools
             end
           rescue Exception
           end
+          @links = nil
+          @link = nil
           
           # rdf:about is ordered last because a lot of people put the url to
           # the feed inside it instead of a link to their blog.
@@ -975,6 +986,7 @@ module FeedTools
             @href_overridden = false
           end
           if @href_overridden == true
+            @links = nil
             @link = nil
           end
         end

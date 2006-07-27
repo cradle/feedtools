@@ -126,6 +126,7 @@ class AtomTest < Test::Unit::TestCase
       </feed>
     FEED
     ) { |feed|
+      assert_equal(2, feed.links.size)
       assert_equal("http://www.intertwingly.net/blog/index.atom", feed.href)
       assert_equal("http://www.intertwingly.net/blog/", feed.link)
       assert_equal("http://www.intertwingly.net/blog/", feed.author.href)
@@ -149,6 +150,7 @@ class AtomTest < Test::Unit::TestCase
       </feed>
     FEED
     ) { |feed|
+      assert_equal(2, feed.links.size)
       assert_equal("http://www.intertwingly.net/blog/", feed.link)
       assert_equal("http://www.intertwingly.net/blog/index.atom", feed.href)
       assert_equal("http://www.intertwingly.net/blog/", feed.author.href)
