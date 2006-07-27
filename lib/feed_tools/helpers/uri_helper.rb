@@ -124,16 +124,23 @@ module FeedTools
         normalized_url.gsub!(/^file:\/\/\/([a-zA-Z])\|/i, 'file:///\1:')
         normalized_url.gsub!(/\\/, '/')
       else
-        if (normalized_url =~ /^https?:\/\//i) == nil
+        if (normalized_url =~ /^https?:\/\//i) == nil &&
+            normalized_url =~ /\./
           normalized_url = "http://" + normalized_url
         end
         if normalized_url == "http://"
           return nil
         end
       end
+      if normalized_url =~ /^https?:\/\/#/i
+        normalized_url.gsub!(/^https?:\/\/#/i, "#")
+      end
+      if normalized_url =~ /^https?:\/\/\?/i
+        normalized_url.gsub!(/^https?:\/\/\?/i, "?")
+      end
+
       normalized_url =
         FeedTools::URI.parse(normalized_url.strip).normalize.to_s
-
       return normalized_url
     end
 
@@ -142,7 +149,7 @@ module FeedTools
       return relative_uri if base_uri_sources.blank?
       return nil if relative_uri.nil?
       begin
-        base_uri = URI.parse(
+        base_uri = FeedTools::URI.parse(
           FeedTools::XmlHelper.select_not_blank(base_uri_sources))
         resolved_uri = base_uri
         if relative_uri.to_s != ''

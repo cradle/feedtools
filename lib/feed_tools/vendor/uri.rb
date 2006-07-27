@@ -749,6 +749,9 @@ module FeedTools
       @query = query
       @fragment = fragment
       if @scheme != nil && @host == "" && @path == ""
+        puts @scheme.inspect
+        puts @host.inspect
+        puts @path.inspect
         raise InvalidURIError,
           "Absolute URI missing hierarchical segment."
       end
