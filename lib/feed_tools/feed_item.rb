@@ -37,6 +37,7 @@ module FeedTools
       @title = nil
       @id = nil
       @time = Time.now.gmtime
+      @version = FeedTools::FEED_TOOLS_VERSION::STRING
     end
 
     # Returns the parent feed of this feed item

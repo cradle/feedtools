@@ -55,6 +55,33 @@ module FeedTools
       return URI.new(scheme, userinfo, host, port, path, query, fragment)
     end
     
+    # Converts a path to a file protocol URI.  If the path supplied is
+    # relative, it will be returned as a relative URI.  If the path supplied
+    # is actually a URI, it will return the parsed URI.
+    def self.convert_path(path)
+      return nil if path.nil?
+      
+      converted_uri = path.strip
+      if converted_uri.length > 0 && converted_uri[0..0] == "/"
+        converted_uri = "file://" + converted_uri
+      end
+      if converted_uri.length > 0 &&
+          converted_uri.scan(/^[a-zA-Z]:[\\\/]/).size > 0
+        converted_uri = "file:///" + converted_uri
+      end
+      converted_uri.gsub!(/^file:\/*/i, "file:///")
+      if converted_uri =~ /^file:/i
+        # Adjust windows-style uris
+        converted_uri.gsub!(/^file:\/\/\/([a-zA-Z])\|/i, 'file:///\1:')
+        converted_uri.gsub!(/\\/, '/')
+        converted_uri = self.parse(converted_uri).normalize
+      else
+        converted_uri = self.parse(converted_uri)
+      end
+      
+      return converted_uri
+    end
+    
     # Joins several uris together.
     def self.join(*uris)
       uri_objects = uris.collect do |uri|
@@ -456,9 +483,13 @@ module FeedTools
           normalized_path = "/"
         end
       end
+      normalized_path.gsub!(/%3B/, ";") if normalized_path != nil
+      normalized_path.gsub!(/%3A/, ":") if normalized_path != nil
+
       normalized_query = nil
       normalized_query = self.query.strip if self.query != nil
       normalized_query = self.class.normalize_escaping(normalized_query)
+      normalized_query.gsub!(/%3D/, "=") if normalized_query != nil
       normalized_fragment = nil
       normalized_fragment = self.fragment.strip if self.fragment != nil
       normalized_fragment = self.class.normalize_escaping(normalized_fragment)

@@ -53,6 +53,7 @@ module FeedTools
       @live = false
       @encoding = nil
       @options = nil
+      @version = FeedTools::FEED_TOOLS_VERSION::STRING
     end
           
     # Loads the feed specified by the url, pulling the data from the

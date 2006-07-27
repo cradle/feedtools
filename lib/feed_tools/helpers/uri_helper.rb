@@ -59,13 +59,33 @@ module FeedTools
     # to be.  Also translates from the feed: and rss: pseudo-protocols to the
     # http: protocol.
     def self.normalize_url(url)
+      if url.nil?
+        return nil
+      end
       if !url.kind_of?(String)
         url = url.to_s
       end
       if url.blank?
-        return nil
+        return ""
       end
-      normalized_url = FeedTools::URI.parse(url.strip).normalize.to_s
+      normalized_url = url.strip
+
+      begin
+        normalized_url =
+          FeedTools::URI.convert_path(normalized_url.strip).normalize.to_s
+      rescue Exception
+      end
+      
+      begin
+        begin
+          normalized_url =
+            FeedTools::URI.parse(normalized_url.strip).normalize.to_s
+        rescue Exception
+          normalized_url = CGI.unescape(url.strip)
+        end
+      rescue Exception
+        normalized_url = url.strip
+      end
 
       # if a url begins with the '/' character, it only makes sense that they
       # meant to be using a file:// url.  Fix it for them.
