@@ -459,13 +459,18 @@ module FeedTools
     # Returns a duplicate object suitable for serialization
     def serializable
       self.full_parse()
+      entries_to_dump = self.entries
+      # This prevents errors due to temporarily having feed items with
+      # multiple parent feeds.
+      self.entries = []
       feed_to_dump = self.dup
       feed_to_dump.instance_variable_set("@xml_document", nil)
       feed_to_dump.instance_variable_set("@root_node", nil)
       feed_to_dump.instance_variable_set("@channel_node", nil)
-      feed_to_dump.entries = self.entries.collect do |entry|
+      feed_to_dump.entries = entries_to_dump.collect do |entry|
         entry.serializable
       end
+      self.entries = entries_to_dump
       return feed_to_dump
     end
         

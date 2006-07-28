@@ -1529,7 +1529,12 @@ module FeedTools
         @itunes_author = FeedTools::HtmlHelper.unescape_entities(
           FeedTools::XmlHelper.try_xpaths(self.root_node,
             ["itunes:author/text()"], :select_result_value => true))
-        @itunes_author = feed.itunes_author if @itunes_author.blank?
+        if @itunes_author.blank?
+          parent_feed = self.feed
+          if parent_feed != nil
+            @itunes_author = parent_feed.itunes_author
+          end
+        end
       end
       return @itunes_author
     end
