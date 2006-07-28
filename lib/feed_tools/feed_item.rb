@@ -170,6 +170,12 @@ module FeedTools
           @xml_document = REXML::Document.new(self.feed_data)
         end
       end
+      begin
+        self.root_node.parent
+      rescue Exception
+        @xml_document = REXML::Document.new(self.feed_data)
+        @root_node = nil
+      end
       return @xml_document
     end
 
