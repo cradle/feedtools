@@ -141,7 +141,12 @@ module FeedTools
     # Returns the feed item's encoding.
     def encoding
       if @encoding.nil?
-        @encoding = self.feed.encoding
+        parent_feed = self.feed
+        if parent_feed != nil
+          @encoding = parent_feed.encoding
+        else
+          @encoding = nil
+        end
       end
       return @encoding
     end
