@@ -1416,6 +1416,13 @@ module FeedTools
         rescue
           @author.name = nil
         end
+        if @author.name.blank? && @author.email.blank? &&
+            @author.href.blank?
+          parent_feed = self.feed
+          if parent_feed != nil
+            @author = parent_feed.author.dup
+          end
+        end
       end
       return @author
     end
@@ -1497,6 +1504,13 @@ module FeedTools
                 @publisher.url, [root_base_uri, self.base_uri])
             end
           rescue
+          end
+        end
+        if @publisher.name.blank? && @publisher.email.blank? &&
+            @publisher.href.blank?
+          parent_feed = self.feed
+          if parent_feed != nil
+            @publisher = parent_feed.publisher.dup
           end
         end
       end
