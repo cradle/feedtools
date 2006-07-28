@@ -1855,8 +1855,10 @@ module FeedTools
           "media:adult/text()",
           "itunes:explicit/text()"
         ], :select_result_value => true)
-        if explicit_string == "true" || explicit_string == "yes" ||
-            feed.explicit?
+        parent_feed = self.feed
+        if explicit_string == "true" || explicit_string == "yes"
+          @explicit = true
+        elsif parent_feed != nil && parent_feed.explicit?
           @explicit = true
         else
           @explicit = false
