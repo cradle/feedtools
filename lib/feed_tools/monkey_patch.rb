@@ -12,6 +12,16 @@ module YAML
     obj.to_yaml( io || io2 = StringIO.new )
     io || ( io2.rewind; io2.read )
 	end
+	
+	def YAML.load( io )
+		yp = parser.load( io )
+	  if yp.kind_of?(FeedTools::Feed) || yp.kind_of?(FeedTools::FeedItem)
+	    # No really, I'm serious, you WILL NOT deserialize these things.
+	    yp.instance_variable_set("@xml_document", nil)
+	    yp.instance_variable_set("@root_node", nil)
+	    yp.instance_variable_set("@channel_node", nil)
+	  end
+	end
 end
 
 module REXML # :nodoc:
