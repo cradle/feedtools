@@ -21,6 +21,7 @@ module YAML
 	    yp.instance_variable_set("@root_node", nil)
 	    yp.instance_variable_set("@channel_node", nil)
 	  end
+	  yp
 	end
 end
 
