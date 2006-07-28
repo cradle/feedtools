@@ -471,6 +471,9 @@ module FeedTools
         entry.serializable
       end
       self.entries = entries_to_dump
+      feed_to_dump.entries.each do |entry|
+        entry.instance_variable_set("@root_node", nil)
+      end
       return feed_to_dump
     end
         
