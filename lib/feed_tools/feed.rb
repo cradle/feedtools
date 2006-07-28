@@ -648,19 +648,15 @@ module FeedTools
     # Returns a REXML Document of the feed_data
     def xml_document
       if @xml_document.nil?
+        return nil if self.feed_data.blank?
         if self.feed_data_type != :xml
           @xml_document = nil
         else
           begin
-            begin
-              @xml_document = REXML::Document.new(self.feed_data_utf_8)
-            rescue Exception
-              # Something failed, attempt to repair the xml with htree.
-              @xml_document = HTree.parse(self.feed_data_utf_8).to_rexml
-            end
-          rescue Exception => error
-            @xml_document = nil
-            raise error
+            @xml_document = REXML::Document.new(self.feed_data_utf_8)
+          rescue Exception
+            # Something failed, attempt to repair the xml with htree.
+            @xml_document = HTree.parse(self.feed_data_utf_8).to_rexml
           end
         end
       end

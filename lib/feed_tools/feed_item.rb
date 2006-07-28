@@ -173,6 +173,7 @@ module FeedTools
     # Returns a REXML Document of the feed_data
     def xml_document
       if @xml_document.nil?
+        return nil if self.feed_data.blank?
         if self.feed_data_type != :xml
           @xml_document = nil
         else
