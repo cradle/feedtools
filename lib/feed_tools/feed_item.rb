@@ -175,7 +175,7 @@ module FeedTools
 
     # Returns the first node within the root_node that matches the xpath query.
     def find_node(xpath, select_result_value=false)
-      if feed.feed_data_type != :xml
+      if self.feed_data_type != :xml
         raise "The feed data type is not xml."
       end
       return FeedTools::XmlHelper.try_xpaths(self.root_node, [xpath],
@@ -184,7 +184,7 @@ module FeedTools
 
     # Returns all nodes within the root_node that match the xpath query.
     def find_all_nodes(xpath, select_result_value=false)
-      if feed.feed_data_type != :xml
+      if self.feed_data_type != :xml
         raise "The feed data type is not xml."
       end
       return FeedTools::XmlHelper.try_xpaths_all(self.root_node, [xpath],
