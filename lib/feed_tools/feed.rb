@@ -444,9 +444,8 @@ module FeedTools
     # cache.
     def serialize_to_cache
       @cache_object = nil
-      self.full_parse()
       require 'yaml'
-      serialized_feed = YAML.dump(self)
+      serialized_feed = YAML.dump(self.serializable)
       if self.cache_object != nil
         begin
           self.cache_object.serialized = serialized_feed
@@ -455,6 +454,19 @@ module FeedTools
         end
       end
       return nil
+    end
+    
+    # Returns a duplicate object suitable for serialization
+    def serializable
+      self.full_parse()
+      feed_to_dump = self.dup
+      feed_to_dump.instance_variable_set("@xml_document", nil)
+      feed_to_dump.instance_variable_set("@root_node", nil)
+      feed_to_dump.instance_variable_set("@channel_node", nil)
+      feed_to_dump.entries = self.entries.collect do |entry|
+        entry.serializable
+      end
+      return feed_to_dump
     end
         
     # Returns the relevant information from an http request.
@@ -628,24 +640,27 @@ module FeedTools
       unless self.cache_object.nil?
         self.cache_object.feed_data_type = new_feed_data_type
       end
-    end
-  
-    # Returns a REXML Document of the feed_data
-    def xml_document
       if self.feed_data_type != :xml
         @xml_document = nil
-      else
-        if @xml_document.nil?
+      end
+    end
+
+    # Returns a REXML Document of the feed_data
+    def xml_document
+      if @xml_document.nil?
+        if self.feed_data_type != :xml
+          @xml_document = nil
+        else
           begin
             begin
               @xml_document = REXML::Document.new(self.feed_data_utf_8)
-            rescue Object
+            rescue Exception
               # Something failed, attempt to repair the xml with htree.
               @xml_document = HTree.parse(self.feed_data_utf_8).to_rexml
             end
-          rescue Object
+          rescue Exception => error
             @xml_document = nil
-            raise
+            raise error
           end
         end
       end
@@ -684,7 +699,7 @@ module FeedTools
           else
             @root_node = self.xml_document.root
           end
-        rescue
+        rescue Exception
           return nil
         end
       end

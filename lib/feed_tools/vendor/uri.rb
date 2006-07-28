@@ -730,7 +730,8 @@ module FeedTools
     # Assigns the specified components to the appropriate instance variables.
     # Used in destructive operations to avoid code repetition.
     def assign_components(scheme, userinfo, host, port, path, query, fragment)
-      if [scheme, userinfo, host, port, path, query, fragment].uniq == [nil]
+      if scheme == nil && userinfo == nil && host == nil && port == nil &&
+          path == nil && query == nil && fragment == nil
         raise InvalidURIError, "All parameters were nil."
       end
       @scheme = scheme

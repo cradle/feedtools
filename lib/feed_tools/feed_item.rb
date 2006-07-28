@@ -111,6 +111,15 @@ module FeedTools
       self.explicit?
     end
     
+    # Returns a duplicate object suitable for serialization
+    def serializable
+      self.full_parse()
+      feed_item_to_dump = self.dup
+      feed_item_to_dump.instance_variable_set("@xml_document", nil)
+      feed_item_to_dump.instance_variable_set("@root_node", nil)
+      return feed_item_to_dump
+    end
+    
     # Returns the load options for this feed.
     def configurations
       if @configurations.blank?
@@ -156,25 +165,22 @@ module FeedTools
     # Sets the feed item's data type.
     def feed_data_type=(new_feed_data_type)
       @feed_data_type = new_feed_data_type
+      if self.feed_data_type != :xml
+        @xml_document = nil
+      end
     end
 
     # Returns a REXML Document of the feed_data
     def xml_document
-      if self.feed_data_type != :xml
-        @xml_document = nil
-      else
-        if @xml_document.nil?
+      if @xml_document.nil?
+        if self.feed_data_type != :xml
+          @xml_document = nil
+        else
           # TODO: :ignore_whitespace_nodes => :all
           # Add that?
           # ======================================
           @xml_document = REXML::Document.new(self.feed_data)
         end
-      end
-      begin
-        self.root_node.parent
-      rescue Exception
-        @xml_document = REXML::Document.new(self.feed_data)
-        @root_node = nil
       end
       return @xml_document
     end
