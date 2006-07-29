@@ -88,8 +88,6 @@ module FeedTools
       self.links
       self.link
       self.comments
-      self.author
-      self.publisher
       self.time
       self.updated
       self.published
@@ -98,6 +96,8 @@ module FeedTools
       self.tags
       self.images
       self.rights
+      self.author
+      self.publisher
 
       self.itunes_summary
       self.itunes_subtitle
@@ -115,6 +115,8 @@ module FeedTools
     def serializable
       self.full_parse()
       feed_item_to_dump = self.dup
+      feed_item_to_dump.author
+      feed_item_to_dump.publisher
       feed_item_to_dump.instance_variable_set("@xml_document", nil)
       feed_item_to_dump.instance_variable_set("@root_node", nil)
       return feed_item_to_dump
