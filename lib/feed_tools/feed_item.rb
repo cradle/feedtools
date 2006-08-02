@@ -1899,6 +1899,18 @@ module FeedTools
         xml_builder=Builder::XmlMarkup.new(
           :indent => 2, :escape_attrs => false))
           
+      parent_feed = self.feed
+      if parent_feed.find_node(
+          "access:restriction/@relationship").to_s == "deny"
+        raise StandardError,
+          "Operation not permitted.  This feed denies redistribution."
+      end
+      if self.find_node(
+          "access:restriction/@relationship").to_s == "deny"
+        raise StandardError,
+          "Operation not permitted.  This feed item denies redistribution."
+      end
+      
       self.full_parse()
       
       if feed_type == "rss" && (version == nil || version == 0.0)

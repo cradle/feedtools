@@ -2415,7 +2415,12 @@ module FeedTools
     def build_xml(feed_type=(self.feed_type or "atom"), feed_version=nil,
         xml_builder=Builder::XmlMarkup.new(
           :indent => 2, :escape_attrs => false))
-          
+      
+      if self.find_node("access:restriction/@relationship").to_s == "deny"
+        raise StandardError,
+          "Operation not permitted.  This feed denies redistribution."
+      end
+      
       self.full_parse()
       
       xml_builder.instruct! :xml, :version => "1.0",

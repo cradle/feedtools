@@ -33,6 +33,7 @@ FEED_TOOLS_ENV = ENV['FEED_TOOLS_ENV'] ||
                  'development' # :nodoc:
 
 FEED_TOOLS_NAMESPACES = {
+  "access" => "http://www.bloglines.com/about/specs/fac-1.0",
   "admin" => "http://webns.net/mvcb/",
   "ag" => "http://purl.org/rss/1.0/modules/aggregation/",
   "annotate" => "http://purl.org/rss/1.0/modules/annotate/",
