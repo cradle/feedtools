@@ -1904,6 +1904,9 @@ module FeedTools
           "access:restriction/@relationship").to_s == "deny"
         raise StandardError,
           "Operation not permitted.  This feed denies redistribution."
+      elsif parent_feed.find_node("@indexing:index").to_s == "no"
+        raise StandardError,
+          "Operation not permitted.  This feed denies redistribution."
       end
       if self.find_node(
           "access:restriction/@relationship").to_s == "deny"

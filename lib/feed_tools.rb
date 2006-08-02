@@ -55,6 +55,7 @@ FEED_TOOLS_NAMESPACES = {
   "ev" => "http://purl.org/rss/1.0/modules/event/",
   "icbm" => "http://postneo.com/icbm/",
   "image" => "http://purl.org/rss/1.0/modules/image/",
+  "indexing" => "urn:atom-extension:indexing",
   "feedburner" => "http://rssnamespace.org/feedburner/ext/1.0",
   "foaf" => "http://xmlns.com/foaf/0.1/",
   "foo" => "http://hsivonen.iki.fi/FooML",
