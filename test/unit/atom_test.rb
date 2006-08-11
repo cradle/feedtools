@@ -667,4 +667,24 @@ class AtomTest < Test::Unit::TestCase
         feed.items[0].title, "XHTML NCR failed")
     }
   end
+  
+  def test_feed_item_content_sanitization
+    with_feed(:from_data => <<-FEED
+      <?xml version="1.0" encoding="iso-8859-1"?>
+      <feed version="1.0" xmlns="http://www.w3.org/2005/Atom">
+        <entry>
+          <content type="xhtml" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+            <xhtml:div>
+              <xhtml:script>alert('Content Attack Succeeded');</xhtml:script>
+            </xhtml:div>
+          </content>
+        </entry>
+      </feed>
+    FEED
+    ) { |feed|
+      assert_equal(1, feed.items.size)
+      assert_equal(
+        "", feed.items[0].content, "Sanitization of content element failed")
+    }
+  end
 end

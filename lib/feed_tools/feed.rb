@@ -978,7 +978,8 @@ module FeedTools
             "feed/@resource",
             "@rdf:about",
             "@about",
-            "newLocation/text()"
+            "newLocation/text()",
+            "atom10:link[@rel='self']/@href"
           ], :select_result_value => true) do |result|
             override_href.call(FeedTools::UriHelper.normalize_url(result))
           end
@@ -1294,6 +1295,13 @@ module FeedTools
             "@href",
             "text()"
           ], :select_result_value => true)
+          if link_object.href == "atom10:" ||
+              link_object.href == "atom03:" ||
+              link_object.href == "atom:"
+            link_object.href = FeedTools::XmlHelper.try_xpaths(link_node, [
+              "@href"
+            ], :select_result_value => true)
+          end
           if link_object.href.nil? && link_node.base_uri != nil
             link_object.href = ""
           end
@@ -1318,6 +1326,13 @@ module FeedTools
             "@atom:hreflang",
             "@hreflang"
           ], :select_result_value => true)
+          if link_object.hreflang == "atom10:" ||
+              link_object.hreflang == "atom03:" ||
+              link_object.hreflang == "atom:"
+            link_object.hreflang = FeedTools::XmlHelper.try_xpaths(link_node, [
+              "@hreflang"
+            ], :select_result_value => true)
+          end
           unless link_object.hreflang.nil?
             link_object.hreflang = link_object.hreflang.downcase
           end
@@ -1327,6 +1342,13 @@ module FeedTools
             "@atom:rel",
             "@rel"
           ], :select_result_value => true)
+          if link_object.rel == "atom10:" ||
+              link_object.rel == "atom03:" ||
+              link_object.rel == "atom:"
+            link_object.rel = FeedTools::XmlHelper.try_xpaths(link_node, [
+              "@rel"
+            ], :select_result_value => true)
+          end
           unless link_object.rel.nil?
             link_object.rel = link_object.rel.downcase
           end
@@ -1339,6 +1361,13 @@ module FeedTools
             "@atom:type",
             "@type"
           ], :select_result_value => true)
+          if link_object.type == "atom10:" ||
+              link_object.type == "atom03:" ||
+              link_object.type == "atom:"
+            link_object.type = FeedTools::XmlHelper.try_xpaths(link_node, [
+              "@type"
+            ], :select_result_value => true)
+          end
           unless link_object.type.nil?
             link_object.type = link_object.type.downcase
           end
@@ -1349,6 +1378,13 @@ module FeedTools
             "@title",
             "text()"
           ], :select_result_value => true)
+          if link_object.title == "atom10:" ||
+              link_object.title == "atom03:" ||
+              link_object.title == "atom:"
+            link_object.title = FeedTools::XmlHelper.try_xpaths(link_node, [
+              "@title"
+            ], :select_result_value => true)
+          end
           # This catches the ambiguities between atom, rss, and cdf
           if link_object.title == link_object.href
             link_object.title = nil
@@ -1359,6 +1395,13 @@ module FeedTools
             "@atom:length",
             "@length"
           ], :select_result_value => true)
+          if link_object.length == "atom10:" ||
+              link_object.length == "atom03:" ||
+              link_object.length == "atom:"
+            link_object.length = FeedTools::XmlHelper.try_xpaths(link_node, [
+              "@length"
+            ], :select_result_value => true)
+          end
           if !link_object.length.nil?
             link_object.length = link_object.length.to_i
           else
@@ -1386,7 +1429,10 @@ module FeedTools
     def base_uri
       if @base_uri.nil?
         @base_uri = FeedTools::XmlHelper.try_xpaths(self.channel_node, [
-          "@base"
+          "@base",
+          "base/@href",
+          "base/text()",
+          "@xml:base"
         ], :select_result_value => true)
         if @base_uri.blank?
           begin
@@ -1397,8 +1443,25 @@ module FeedTools
           rescue Exception
           end
         end
+        if @base_uri.blank?
+          @base_uri = FeedTools::XmlHelper.try_xpaths(self.root_node, [
+            "@xml:base"
+          ], :select_result_value => true)
+        end
         if !@base_uri.blank?
           @base_uri = FeedTools::UriHelper.normalize_url(@base_uri)
+        end
+        if !@base_uri.blank?
+          parsed_uri = FeedTools::URI.parse(@base_uri)
+          # Feedburner is almost never the base uri that was intended
+          # Use the actual site instead
+          if parsed_uri.host =~ /feedburner/
+            site_uri =
+              FeedTools::GenericHelper.recursion_trap(:feed_base_uri) do
+                FeedTools::UriHelper.normalize_url(self.link)
+              end
+            @base_uri = site_uri if !site_uri.blank?
+          end
         end
       end
       return @base_uri
