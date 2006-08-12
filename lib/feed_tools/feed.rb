@@ -2647,6 +2647,9 @@ module FeedTools
             unless self.copyright.blank?
               xml_builder.copyright(self.copyright)
             end
+            unless self.language.blank?
+              xml_builder.language(self.language)
+            end
             xml_builder.ttl((time_to_live / 1.minute).to_s)
             xml_builder.generator(
               self.configurations[:generator_href])
