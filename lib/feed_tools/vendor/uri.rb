@@ -485,6 +485,7 @@ module FeedTools
       end
       normalized_path.gsub!(/%3B/, ";") if normalized_path != nil
       normalized_path.gsub!(/%3A/, ":") if normalized_path != nil
+      normalized_path.gsub!(/%40/, "@") if normalized_path != nil
 
       normalized_query = nil
       normalized_query = self.query.strip if self.query != nil
