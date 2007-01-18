@@ -60,7 +60,7 @@ module HTree # :nodoc:
     if input.respond_to? :read # IO, StringIO
       input = input.read.untaint
       input_charset = input.charset if input.respond_to? :charset
-    elsif input.respond_to? :open # Pathname, URI with open-uri
+    elsif (input.respond_to? :open) && !(input.kind_of? String)
       input.open {|f|
         input = f.read.untaint
         input_charset = f.charset if f.respond_to? :charset
