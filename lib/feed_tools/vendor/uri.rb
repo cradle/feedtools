@@ -486,12 +486,15 @@ module FeedTools
       normalized_path.gsub!(/%3B/, ";") if normalized_path != nil
       normalized_path.gsub!(/%3A/, ":") if normalized_path != nil
       normalized_path.gsub!(/%40/, "@") if normalized_path != nil
+      normalized_path.gsub!(/%2B/, "+") if normalized_path != nil
 
       normalized_query = nil
       normalized_query = self.query.strip if self.query != nil
       normalized_query = self.class.normalize_escaping(normalized_query)
       normalized_query.gsub!(/%3D/, "=") if normalized_query != nil
       normalized_query.gsub!(/%26/, "&") if normalized_query != nil
+      normalized_query.gsub!(/%2B/, "+") if normalized_query != nil
+      
       normalized_fragment = nil
       normalized_fragment = self.fragment.strip if self.fragment != nil
       normalized_fragment = self.class.normalize_escaping(normalized_fragment)

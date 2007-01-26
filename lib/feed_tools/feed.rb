@@ -81,7 +81,8 @@ module FeedTools
             # If we've got a cache hit, deserialize
             expired = true
             if cache_object.time_to_live == nil
-              cache_object.time_to_live = 1.hour
+              cache_object.time_to_live =
+                feed_configurations[:default_ttl].to_i
               cache_object.save
             end
             if (cache_object.last_retrieved == nil)
@@ -2126,14 +2127,14 @@ module FeedTools
               @time_to_live = @time_to_live + update_frequency_seconds.to_i
             end
             if @time_to_live == 0
-              @time_to_live = 1.hour
+              @time_to_live = self.configurations[:default_ttl].to_i
             end
           end
         end
       end
       if @time_to_live.nil? || @time_to_live == 0
         # Default to one hour
-        @time_to_live = 1.hour
+        @time_to_live = self.configurations[:default_ttl].to_i
       elsif self.configurations[:max_ttl] != nil &&
           self.configurations[:max_ttl] != 0 &&
           @time_to_live >= self.configurations[:max_ttl].to_i
@@ -2146,7 +2147,7 @@ module FeedTools
     # Sets the feed time to live
     def time_to_live=(new_time_to_live)
       @time_to_live = new_time_to_live.round
-      @time_to_live = 1.hour if @time_to_live < 1.hour
+      @time_to_live = 30.minutes if @time_to_live < 30.minutes
     end
 
     # Returns the feed's cloud

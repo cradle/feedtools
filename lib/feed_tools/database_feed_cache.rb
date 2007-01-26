@@ -51,6 +51,8 @@ module FeedTools
         ActiveRecord::Base.default_timezone = :utc
         ActiveRecord::Base.connection
       rescue
+      end
+      if !ActiveRecord::Base.connected?
         begin
           possible_config_files = [
             "./config/database.yml",
@@ -66,6 +68,7 @@ module FeedTools
           for file in possible_config_files
             if File.exists?(File.expand_path(file))
               database_config_file = file
+              @config_path = database_config_file
               break
             end
           end
@@ -83,6 +86,14 @@ module FeedTools
         end
       end
       return nil
+    end
+    
+    # Returns the path to the database.yml config file that FeedTools loaded.
+    def DatabaseFeedCache.config_path
+      if !defined?(@config_path) || @config_path.blank?
+        @config_path = nil
+      end
+      return @config_path
     end
 
     # Returns true if a connection to the database has been established and the

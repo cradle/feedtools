@@ -110,6 +110,7 @@ begin
   require 'rubygems'
 
   require_gem('builder', '>= 1.2.4')
+  require 'builder'
 
   # Preload optional libraries.
   begin
@@ -141,9 +142,11 @@ begin
 
   if !defined?(ActiveSupport)
     require_gem('activesupport', '>= 1.1.1')
+    require 'active_support'
   end
   if !defined?(ActiveRecord)
     require_gem('activerecord', '>= 1.11.1')
+    require 'active_record'
   end
 
   begin
@@ -224,6 +227,7 @@ module FeedTools
         :strip_comment_count => false,
         :tab_spaces => 2,
         :max_ttl => 3.days.to_s,
+        :default_ttl => 1.hour.to_s,
         :output_encoding => "utf-8"
       }.merge(config_hash)
     end

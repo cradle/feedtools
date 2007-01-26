@@ -188,7 +188,7 @@ module FeedTools
       end
       normalized_url = normalize_url(url)
       require 'uuidtools'
-      return UUID.sha1_create(UUID_URL_NAMESPACE, normalized_url).to_uri_string
+      return UUID.sha1_create(UUID_URL_NAMESPACE, normalized_url).to_uri.to_s
     end
 
     # Returns true if the parameter appears to be a valid uri

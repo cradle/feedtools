@@ -114,9 +114,9 @@ module FeedTools
           proxy_port =
             options[:feed_object].configurations[:proxy_port].to_i || nil
           proxy_user =
-            options[:feed_object].configurations[:proxy_user].to_i || nil
+            options[:feed_object].configurations[:proxy_user] || nil
           proxy_password =
-            options[:feed_object].configurations[:proxy_password].to_i || nil
+            options[:feed_object].configurations[:proxy_password] || nil
         end        
         
         # No need to check for nil
