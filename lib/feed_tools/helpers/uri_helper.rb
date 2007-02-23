@@ -110,6 +110,7 @@ module FeedTools
       # deal with all of the many ugly possibilities involved in the rss:
       # and feed: pseudo-protocols (incidentally, whose crazy idea was this
       # mess?)
+      normalized_url.gsub!(/^htp:\/*/i, "http://")
       normalized_url.gsub!(/^http:\/*(feed:\/*)?/i, "http://")
       normalized_url.gsub!(/^http:\/*(rss:\/*)?/i, "http://")
       normalized_url.gsub!(/^feed:\/*(http:\/*)?/i, "http://")
@@ -118,6 +119,7 @@ module FeedTools
       normalized_url.gsub!(/^https:\/*/i, "https://")
       # fix (very) bad urls (usually of the user-entered sort)
       normalized_url.gsub!(/^http:\/*(http:\/*)*/i, "http://")
+      normalized_url.gsub!(/^http:\/*$/i, "")
 
       if (normalized_url =~ /^file:/i) == 0
         # Adjust windows-style urls
