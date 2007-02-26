@@ -516,7 +516,7 @@ module FeedTools
         return nil if raw_data.nil?
         encoding_from_xml_instruct = 
           raw_data.scan(
-            /^<\?xml [^>]*encoding="([\w]*)"[^>]*\?>/
+            /^<\?xml [^>]*encoding="([^\"]*)"[^\?>]*\??>/
           ).flatten.first
         unless encoding_from_xml_instruct.blank?
           encoding_from_xml_instruct.downcase!
