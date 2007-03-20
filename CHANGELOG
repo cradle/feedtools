@@ -8,6 +8,7 @@
   * added method to allow feeds and feed items to override lazy parsing
   * added configuration setting to override lazy parsing
   * added serialization feature to allow preparsing with FeedUpdater
+  * added support for HTTP Basic authentication
   * fixed some issues with identifying the correct base uri
   * added config path method to the database feed cache
   * added default time to live configuration variable
