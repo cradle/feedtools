@@ -206,6 +206,9 @@ module FeedTools
         :proxy_port => nil,
         :proxy_user => nil,
         :proxy_password => nil,
+        :auth_user => nil,
+        :auth_password => nil,
+        :auth_scheme => nil,
         :user_agent =>
           "FeedTools/#{FeedTools::FEED_TOOLS_VERSION::STRING} " + 
           "+http://www.sporkmonger.com/projects/feedtools/",

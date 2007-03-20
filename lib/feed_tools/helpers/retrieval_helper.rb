@@ -108,6 +108,10 @@ module FeedTools
         proxy_user = nil
         proxy_password = nil
         
+        auth_user = nil
+        auth_password = nil
+        auth_scheme = nil
+        
         if options[:feed_object] != nil
           proxy_address =
             options[:feed_object].configurations[:proxy_address] || nil
@@ -117,7 +121,22 @@ module FeedTools
             options[:feed_object].configurations[:proxy_user] || nil
           proxy_password =
             options[:feed_object].configurations[:proxy_password] || nil
+
+          auth_user =
+            options[:feed_object].configurations[:auth_user] || nil
+          auth_password =
+            options[:feed_object].configurations[:auth_password] || nil
+          auth_scheme =
+            options[:feed_object].configurations[:auth_scheme] || nil
         end        
+        
+        if (auth_user &&
+            (auth_scheme == nil || auth_scheme.to_s.to_sym == :basic))
+          options[:request_headers]["Authorization"] =
+            "Basic " + [
+              "#{auth_user}:#{auth_password}"
+            ].pack('m').delete("\r\n")
+        end
         
         # No need to check for nil
         http = Net::HTTP::Proxy(
