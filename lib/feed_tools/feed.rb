@@ -55,6 +55,41 @@ module FeedTools
       @options = nil
       @version = FeedTools::FEED_TOOLS_VERSION::STRING
     end
+    
+    # Breaks any references that the feed may be keeping around, thus making
+    # the job of the garbage collector much, much easier.  Call this
+    # method prior to feeds going out of scope to prevent memory leaks.
+    def dispose()
+      self.entries.each do |entry|
+        entry.instance_variable_set("@root_node", nil)
+        entry.instance_variable_set("@feed", nil)
+        entry.instance_variable_set("@parent_feed", nil)
+        entry.dispose if entry.respond_to?(:dispose)
+      end
+      self.entries = []
+      
+      @cache_object = nil
+      @http_headers = nil
+      @xml_document = nil
+      @feed_data = nil
+      @feed_data_type = nil
+      @root_node = nil
+      @channel_node = nil
+      @href = nil
+      @id = nil
+      @title = nil
+      @subtitle = nil
+      @link = nil
+      @last_retrieved = nil
+      @time_to_live = nil
+      @entries = nil
+      @live = false
+      @encoding = nil
+      @options = nil
+
+      GC.start()
+      self
+    end
           
     # Loads the feed specified by the url, pulling the data from the
     # cache if it hasn't expired.  Options supplied will override the
@@ -499,8 +534,9 @@ module FeedTools
     # Returns the encoding that the feed was parsed with
     def encoding
       if @encoding.blank?
-        unless self.http_headers.blank?
-          @encoding = "utf-8"
+        if !self.http_headers.blank?
+          # @encoding = "utf-8"
+          @encoding = self.encoding_from_feed_data
         else
           @encoding = self.encoding_from_feed_data
         end
@@ -516,7 +552,7 @@ module FeedTools
         return nil if raw_data.nil?
         encoding_from_xml_instruct = 
           raw_data.scan(
-            /^<\?xml [^>]*encoding="([^\"]*)"[^\?>]*\??>/
+            /^<\?xml [^>]*encoding="([^\"]*)"[^>]*\?>/
           ).flatten.first
         unless encoding_from_xml_instruct.blank?
           encoding_from_xml_instruct.downcase!

@@ -39,6 +39,19 @@ module FeedTools
       @time = Time.now.gmtime
       @version = FeedTools::FEED_TOOLS_VERSION::STRING
     end
+    
+    # Breaks any references that the feed entry may be keeping around, thus
+    # making the job of the garbage collector much, much easier.  Call this
+    # method prior to feed entries going out of scope to prevent memory leaks.
+    def dispose()
+      @feed_data = nil
+      @feed_data_type = nil
+      @xml_document = nil
+      @root_node = nil
+      @title = nil
+      @id = nil
+      @time = nil
+    end
 
     # Returns the parent feed of this feed item
     # Warning, this method may be slow if you have a
