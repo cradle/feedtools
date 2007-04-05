@@ -332,6 +332,7 @@ module FeedTools
     FeedTools::GenericHelper.validate_options([ :multi_threaded ],
                      options.keys)
     options = { :multi_threaded => false }.merge(options)
+    warn("FeedTools.build_merged_feed is deprecated.")
     return nil if url_array.nil?
     merged_feed = FeedTools::Feed.new
     retrieved_feeds = []
@@ -353,12 +354,13 @@ module FeedTools
       end
     end
     retrieved_feeds.each do |feed|
-      merged_feed.entries.concat(
+      merged_feed.entries = merged_feed.entries.concat(
         feed.entries.collect do |entry|
           new_entry = entry.dup
           new_entry.title = "#{feed.title}: #{entry.title}"
           new_entry
-        end )
+        end
+      )
     end
     return merged_feed
   end
