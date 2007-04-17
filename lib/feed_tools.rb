@@ -108,9 +108,12 @@ begin
   end
 
   require 'rubygems'
-
-  require_gem('builder', '>= 1.2.4')
   require 'builder'
+  
+  if !defined?(ActiveRecord)
+    gem('activerecord', '>= 1.11.1')
+    require 'active_record'
+  end
 
   # Preload optional libraries.
   begin
@@ -140,17 +143,8 @@ begin
   require 'yaml'
   require 'base64'
 
-  if !defined?(ActiveSupport)
-    require_gem('activesupport', '>= 1.1.1')
-    require 'active_support'
-  end
-  if !defined?(ActiveRecord)
-    require_gem('activerecord', '>= 1.11.1')
-    require 'active_record'
-  end
-
   begin
-    require_gem('uuidtools', '>= 0.1.2')
+    gem('uuidtools', '>= 0.1.2')
   rescue Gem::LoadError
     begin
       require 'uuidtools'
@@ -209,6 +203,7 @@ module FeedTools
         :auth_user => nil,
         :auth_password => nil,
         :auth_scheme => nil,
+        :http_timeout => nil,
         :user_agent =>
           "FeedTools/#{FeedTools::FEED_TOOLS_VERSION::STRING} " + 
           "+http://www.sporkmonger.com/projects/feedtools/",

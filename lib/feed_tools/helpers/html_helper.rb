@@ -28,6 +28,29 @@ require 'rexml/document'
 module FeedTools
   # Methods for pulling remote data
   module HtmlHelper
+    TIDY_OPTIONS = [
+      :add_xml_decl, :add_xml_space, :alt_text, :assume_xml_procins, :bare,
+      :clean, :css_prefix, :decorate_inferred_ul, :doctype,
+      :drop_empty_paras, :drop_font_tags, :drop_proprietary_attributes,
+      :enclose_block_text, :enclose_text, :escape_cdata, :fix_backslash,
+      :fix_bad_comments, :fix_uri, :hide_comments, :hide_endtags,
+      :indent_cdata, :input_xml, :join_classes, :join_styles,
+      :literal_attributes, :logical_emphasis, :lower_literals, :merge_divs,
+      :ncr, :new_blocklevel_tags, :new_empty_tags, :new_inline_tags,
+      :new_pre_tags, :numeric_entities, :output_html, :output_xhtml,
+      :output_xml, :preserve_entities, :quote_ampersand, :quote_marks,
+      :quote_nbsp, :repeated_attributes, :replace_color, :show_body_only,
+      :uppercase_attributes, :uppercase_tags, :word_2000,
+      :accessibility_check, :show_errors, :show_warnings, :break_before_br,
+      :indent, :indent_attributes, :indent_spaces, :markup,
+      :punctuation_wrap, :split, :tab_size, :vertical_space, :wrap,
+      :wrap_asp, :wrap_attributes, :wrap_jste, :wrap_php,
+      :wrap_script_literals, :wrap_sections, :ascii_chars, :char_encoding,
+      :input_encoding, :language, :newline, :output_bom, :output_encoding,
+      :error_file, :force_output, :gnu_emacs, :gnu_emacs_file, :keep_time,
+      :output_file, :quiet, :slide_style, :tidy_mark, :write_back
+    ]
+
     # Escapes all html entities
     def self.escape_entities(html)
       return nil if html.nil?
@@ -43,9 +66,12 @@ module FeedTools
       unescaped_html = html
       unescaped_html.gsub!(/&#x26;/, "&amp;")
       unescaped_html.gsub!(/&#38;/, "&amp;")
-      unescaped_html = unescaped_html.gsub(/&#x\d+;/) do |hex|
-        "&#" + hex[3..-2].to_i(16).to_s + ";"
-      end
+      substitute_numerical_entities = Proc.new do |s|
+        m = $1
+        m = "0#{m}" if m[0] == ?x
+        [Integer(m)].pack('U*')
+       end
+      unescaped_html.gsub!(/&#0*((?:\d+)|(?:x[a-f0-9]+));/, &substitute_numerical_entities)
       unescaped_html = CGI.unescapeHTML(unescaped_html)
       unescaped_html.gsub!(/&apos;/, "'")
       unescaped_html.gsub!(/&quot;/, "\"")
@@ -178,12 +204,18 @@ module FeedTools
     # Tidys up the html
     def self.tidy_html(html, options = {})
       return nil if html.nil?
+      FeedTools::GenericHelper.validate_options(TIDY_OPTIONS, options.keys)
 
-      FeedTools::GenericHelper.validate_options([ :input_encoding,
-                                                  :output_encoding ],
-                       options.keys)
-      options = { :input_encoding => "utf-8",
-                  :output_encoding => "utf-8" }.merge(options)
+      options = {
+        :add_xml_decl => false,
+        :char_encoding => "utf8",
+        :doctype => "omit",
+        :indent => false,
+        :logical_emphasis => true,
+        :markup => true,
+        :show_warnings => false,
+        :wrap => 0
+      }.merge(options)
 
       if FeedTools::HtmlHelper.tidy_enabled?
         is_fragment = true
@@ -196,39 +228,26 @@ module FeedTools
           is_fragment = false
         end
 
+        options[:show_body_only] = true if is_fragment
+
         # Tidy sucks?
         # TODO: find the correct set of tidy options to set so
         # that *ugly* hacks like this aren't necessary.
         html = html.gsub(/\302\240/, "\240")
 
-        tidy_html = Tidy.open(:show_warnings=>false) do |tidy|
-          tidy.options.output_xml = true
-          tidy.options.markup = true
-          tidy.options.indent = true
-          tidy.options.wrap = 0
-          tidy.options.logical_emphasis = true
-          tidy.options.input_encoding = options[:input_encoding]
-          tidy.options.output_encoding = options[:output_encoding]
-          tidy.options.doctype = "omit"
+        tidy_html = Tidy.open(options) do |tidy|       
           xml = tidy.clean(html)
           xml
         end
-        if is_fragment
-          # Tidy sticks <html>...<body>[our html]</body>...</html> in.
-          # We don't want this.
-          tidy_html.strip!
-          tidy_html.gsub!(/^<html>(.|\n)*<body>/, "")
-          tidy_html.gsub!(/<\/body>(.|\n)*<\/html>$/, "")
-          tidy_html.gsub!("\t", "  ")
-          tidy_html = FeedTools::HtmlHelper.unindent(tidy_html, 4)
-          tidy_html.strip!
-        end
+        tidy_html.strip!
       else
         tidy_html = html
       end
+      
       if tidy_html.blank? && !html.blank?
         tidy_html = html.strip
       end
+      
       return tidy_html
     end
 

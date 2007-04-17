@@ -142,6 +142,17 @@ module FeedTools
         http = Net::HTTP::Proxy(
           proxy_address, proxy_port, proxy_user, proxy_password).new(
             uri.host, (uri.port or 80))
+
+        if options[:feed_object] != nil &&
+            options[:feed_object].configurations[:http_timeout] != nil
+          http.open_timeout = 
+            options[:feed_object].configurations[:http_timeout].to_f
+        elsif FeedTools.configurations[:http_timeout] != nil
+          http.open_timeout = FeedTools.configurations[:http_timeout].to_f
+        end
+        if http.open_timeout != nil && http.open_timeout == 0
+          http.open_timeout = nil
+        end
         
         path = uri.path 
         path += ('?' + uri.query) if uri.query

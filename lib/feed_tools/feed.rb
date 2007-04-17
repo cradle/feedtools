@@ -471,7 +471,9 @@ module FeedTools
 
       self.explicit?
       
-      self.entries.each { |entry| entry.full_parse() }
+      self.entries.each do |entry|
+        entry.full_parse()
+      end
 
       nil
     end
