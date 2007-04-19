@@ -117,6 +117,7 @@ module FeedTools
       normalized_url.gsub!(/^rss:\/*(http:\/*)?/i, "http://")
       normalized_url.gsub!(/^file:\/*/i, "file:///")
       normalized_url.gsub!(/^https:\/*/i, "https://")
+      normalized_url.gsub!(/^mms:\/*/i, "http://")
       # fix (very) bad urls (usually of the user-entered sort)
       normalized_url.gsub!(/^http:\/*(http:\/*)*/i, "http://")
       normalized_url.gsub!(/^http:\/*$/i, "")
@@ -126,8 +127,8 @@ module FeedTools
         normalized_url.gsub!(/^file:\/\/\/([a-zA-Z])\|/i, 'file:///\1:')
         normalized_url.gsub!(/\\/, '/')
       else
-        if (normalized_url =~ /^https?:\/\//i) == nil &&
-            normalized_url =~ /\./
+        if FeedTools::URI.parse(normalized_url).scheme == nil &&
+            normalized_url =~ /\./ &&
           normalized_url = "http://" + normalized_url
         end
         if normalized_url == "http://"
