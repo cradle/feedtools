@@ -755,7 +755,8 @@ module FeedTools
         @channel_node = FeedTools::XmlHelper.try_xpaths(self.root_node, [
           "channel",
           "CHANNEL",
-          "feedinfo"
+          "feedinfo",
+          "news"
         ])
         if @channel_node == nil
           @channel_node = self.root_node
@@ -2379,7 +2380,8 @@ module FeedTools
             "atom10:entry",
             "atom03:entry",
             "atom:entry",
-            "entry"
+            "entry",
+            "story"
           ]),
           FeedTools::XmlHelper.try_xpaths_all(self.channel_node, [
             "rss10:item",
@@ -2387,7 +2389,8 @@ module FeedTools
             "rss11:items/item",
             "items/rss11:item",
             "items/item",
-            "item"
+            "item",
+            "story"
           ])
         ])
 
@@ -2764,6 +2767,8 @@ module FeedTools
             end
           elsif self.link != nil
             xml_builder.id(FeedTools::UriHelper.build_urn_uri(self.link))
+          elsif self.url != nil
+            xml_builder.id(FeedTools::UriHelper.build_urn_uri(self.url))
           else
             raise "Cannot build feed, missing feed unique id."
           end

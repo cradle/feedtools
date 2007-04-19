@@ -294,7 +294,8 @@ module FeedTools
           "atom03:title",
           "atom:title",
           "title",
-          "dc:title"
+          "dc:title",
+          "headline"
         ])
         @title = FeedTools::HtmlHelper.process_text_construct(title_node,
           self.feed_type, self.feed_version)
@@ -330,6 +331,7 @@ module FeedTools
           "atom10:content",
           "atom03:content",
           "atom:content",
+          "body/datacontent",
           "xhtml:body",
           "body",
           "xhtml:div",
@@ -402,7 +404,8 @@ module FeedTools
           "atom03:content",
           "atom:content",
           "content",
-          "info"
+          "info",
+          "body/datacontent"
         ])
         @summary = FeedTools::HtmlHelper.process_text_construct(summary_node,
           self.feed_type, self.feed_version)
@@ -449,6 +452,7 @@ module FeedTools
             "@atom03:href",
             "@atom:href",
             "@href",
+            "@url",
             "text()"
           ], :select_result_value => true)
           if link_object.href.nil? && link_node.base_uri != nil
@@ -530,6 +534,15 @@ module FeedTools
           end
           @links << link_object
         end
+        if @links.empty? && self.enclosures.size > 0
+          # If there's seriously nothing to link to, but there's enclosures
+          # available, then add a link to the first one.
+          enclosure_link = self.enclosures[0]
+          link_object = FeedTools::Link.new
+          link_object.href = enclosure_link.url
+          link_object.type = enclosure_link.type
+          @links << link_object
+        end
       end
       return @links
     end
@@ -551,6 +564,11 @@ module FeedTools
             score = score - 1
           end
           if FeedTools::HtmlHelper.xml_type?(link_object.type)
+            score = score + 1
+          end
+          if link_object.type =~ /^video/ && self.links.size == 1
+            score = score + 1
+          elsif link_object.type =~ /^audio/ && self.links.size == 1
             score = score + 1
           end
           if link_object.rel == "alternate"
@@ -749,6 +767,7 @@ module FeedTools
               "url/text()",
               "@rdf:resource",
               "@href",
+              "@url",
               "text()"
             ], :select_result_value => true)
             if image.href.nil? && image_node.base_uri != nil
@@ -901,6 +920,9 @@ module FeedTools
         media_group_enclosures =
           FeedTools::XmlHelper.try_xpaths_all(self.root_node, ["media:group"])
           
+        bogus_enclosures =
+          FeedTools::XmlHelper.try_xpaths_all(self.root_node, ["video"])
+          
         # TODO: Implement this
         bittorrent_enclosures =
           FeedTools::XmlHelper.try_xpaths_all(self.root_node,
@@ -942,6 +964,33 @@ module FeedTools
           enclosure.type = enclosure_node.attributes["type"].to_s
           enclosure.file_size = enclosure_node.attributes["length"].to_i
           enclosure.credits = []
+          enclosure.explicit = false
+          if new_enclosure
+            @enclosures << enclosure
+          end
+        end
+        
+        # Parse atom-type enclosures.  If there are repeats of the same
+        # enclosure object, we merge the two together.
+        for enclosure_node in bogus_enclosures
+          enclosure_url = FeedTools::HtmlHelper.unescape_entities(
+            enclosure_node.attributes["url"].to_s)
+          enclosure = nil
+          new_enclosure = false
+          for existing_enclosure in @enclosures
+            if existing_enclosure.url == enclosure_url
+              enclosure = existing_enclosure
+              break
+            end
+          end
+          if enclosure.nil?
+            new_enclosure = true
+            enclosure = FeedTools::Enclosure.new
+          end
+          enclosure.url = enclosure_url
+          if File.extname(enclosure_url) == ".wmv"
+            enclosure.type = "video/x-ms-wmv"
+          end
           enclosure.explicit = false
           if new_enclosure
             @enclosures << enclosure
@@ -1625,7 +1674,8 @@ module FeedTools
           "published/text()",
           "dc:date/text()",
           "pubDate/text()",
-          "date/text()"
+          "date/text()",
+          "lastupdated/text()"
         ], :select_result_value => true)
         begin
           if !time_string.blank?
@@ -1726,7 +1776,8 @@ module FeedTools
           "atom03:modified/text()",
           "atom:modified/text()",
           "modified/text()",
-          "lastBuildDate/text()"
+          "lastBuildDate/text()",
+          "lastupdated/text()"
         ], :select_result_value => true)
         if !updated_string.blank?
           @updated = Time.parse(updated_string).gmtime rescue nil
