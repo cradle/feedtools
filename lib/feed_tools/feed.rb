@@ -220,11 +220,15 @@ module FeedTools
               FeedTools::HtmlHelper.extract_link_by_mime_type(self.feed_data,
                 "application/rdf+xml")
           end
-          unless autodiscovered_url.nil?
+          if autodiscovered_url != nil
             begin
               autodiscovered_url = FeedTools::UriHelper.resolve_relative_uri(
                 autodiscovered_url, [self.href])
             rescue Exception
+            end
+            if self.href == autodiscovered_url
+              raise FeedAccessError,
+                "Autodiscovery loop detected: #{autodiscovered_url}"
             end
             self.feed_data = nil
             self.href = autodiscovered_url
@@ -241,6 +245,10 @@ module FeedTools
             "redirect/newLocation/text()"
           ], :select_result_value => true)
           if !ugly_redirect.blank?
+            if self.href == ugly_redirect
+              raise FeedAccessError,
+                "Ugly redirect loop detected: #{ugly_redirect}"
+            end
             self.feed_data = nil
             self.href = ugly_redirect
             if FeedTools.feed_cache.nil?
