@@ -177,10 +177,9 @@ module FeedTools
     # Loads the feed from the remote url if the feed has expired from the
     # cache or cannot be retrieved from the cache for some reason.
     def update!
-      if self.configurations[:disable_update_from_remote]
-        # Don't do anything if this option is set
-        return
-      end
+      # Don't do anything if this option is set
+      return if self.configurations[:disable_update_from_remote]
+
       if !FeedTools.feed_cache.nil? &&
           !FeedTools.feed_cache.set_up_correctly?
         FeedTools.feed_cache.initialize_cache()
@@ -207,19 +206,13 @@ module FeedTools
             self.http_headers['content-type'] =~ /application\/xhtml\+xml/
 
           autodiscovered_url = nil
-          autodiscovered_url =
-            FeedTools::HtmlHelper.extract_link_by_mime_type(self.feed_data,
-              "application/atom+xml")
-          if autodiscovered_url.nil?
+          ['atom', 'rss', 'rdf'].each do |type|
             autodiscovered_url =
               FeedTools::HtmlHelper.extract_link_by_mime_type(self.feed_data,
-                "application/rss+xml")
+                "application/#{type}+xml")
+            break unless autodiscovered_url.nil?
           end
-          if autodiscovered_url.nil?
-            autodiscovered_url =
-              FeedTools::HtmlHelper.extract_link_by_mime_type(self.feed_data,
-                "application/rdf+xml")
-          end
+          
           if autodiscovered_url != nil
             begin
               autodiscovered_url = FeedTools::UriHelper.resolve_relative_uri(
@@ -239,6 +232,14 @@ module FeedTools
                 FeedTools.feed_cache.find_by_href(autodiscovered_url)
             end
             self.update!
+          else
+            html_body = FeedTools::XmlHelper.try_xpaths(self.xml_document, [
+              "html/body"
+            ])
+            if html_body != nil
+              raise FeedAccessError,
+                "#{self.href} does not appear to be a feed."
+            end
           end
         else
           ugly_redirect = FeedTools::XmlHelper.try_xpaths(self.xml_document, [
