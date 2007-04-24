@@ -166,7 +166,7 @@ module FeedTools
             end
             for path in libtidy_locations
               if File.exists? path
-                if File.ftype(path) == "file"
+                if File.ftype(path) == "file" || File.ftype(path) == "link"
                   Tidy.path = path
                   @tidy_enabled = true
                   break
