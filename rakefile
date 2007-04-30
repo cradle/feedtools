@@ -124,6 +124,17 @@ spec = Gem::Specification.new do |s|
 
   s.require_path = 'lib'
   s.autorequire = 'feed_tools'
+  
+  begin
+  s.post_install_message = <<-TEXT
+
+    FeedTool's caching schema has changed to allow Feed objects to be
+    serialized to the cache.  This should offer some limited speed up
+    in some cases.
+
+  TEXT
+  rescue Exception
+  end
 
   s.has_rdoc = true
   s.extra_rdoc_files = %w( README )

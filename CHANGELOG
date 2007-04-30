@@ -12,6 +12,8 @@
   * fixed some issues with identifying the correct base uri
   * added config path method to the database feed cache
   * added default time to live configuration variable
+  * fixed autodiscovery redirect loops
+  * improved handling of entities
   * no longer causes problems with Mongrel's monkey patch
 === FeedTools 0.2.26
   * added support for retarded, ugly Radio redirects
