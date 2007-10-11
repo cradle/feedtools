@@ -546,8 +546,11 @@ module FeedTools
     def encoding
       if @encoding.blank?
         if !self.http_headers.blank?
-          # @encoding = "utf-8"
-          @encoding = self.encoding_from_feed_data
+          if self.http_headers['content-type'] =~ /charset=([\w\d-]+)/
+            @encoding = $1.downcase
+          else
+            @encoding = self.encoding_from_feed_data
+          end          
         else
           @encoding = self.encoding_from_feed_data
         end
