@@ -684,7 +684,7 @@ class AtomTest < Test::Unit::TestCase
     ) { |feed|
       assert_equal(1, feed.items.size)
       assert_equal(
-        nil, feed.items[0].content, "Sanitization of content element failed")
+        "", feed.items[0].content, "Sanitization of content element failed")
     }
   end
 end
