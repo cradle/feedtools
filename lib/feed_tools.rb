@@ -108,7 +108,11 @@ begin
   end
 
   require 'rubygems'
-  require 'builder'
+  
+  if !defined?(Builder)
+    gem('builder', '>= 1.2.4')
+    require 'builder'
+  end
   
   if !defined?(ActiveRecord)
     gem('activerecord', '>= 1.11.1')
