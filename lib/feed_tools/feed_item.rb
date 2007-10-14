@@ -359,13 +359,13 @@ module FeedTools
             self.configurations[:always_strip_wrapper_elements]
           @content = FeedTools::HtmlHelper.strip_wrapper_element(@content)
         end
-        if @content.blank?
+        if @content.nil?
           @content = self.media_text
         end
-        if @content.blank?
+        if @content.nil?
           @content = self.itunes_summary
         end
-        if @content.blank?
+        if @content.nil?
           @content = self.itunes_subtitle
         end
       end
