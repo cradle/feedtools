@@ -666,11 +666,11 @@ module FeedTools
         else
           use_encoding = force_encoding
         end
-        if use_encoding != "utf-8"
+        if use_encoding != "utf-8" && use_encoding != nil && raw_data != nil
           begin
             @feed_data_utf_8 =
               Iconv.new('utf-8', use_encoding).iconv(raw_data)
-          rescue
+          rescue Exception => error
             return raw_data
           end
         else
