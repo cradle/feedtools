@@ -174,9 +174,12 @@ class HelperTest < Test::Unit::TestCase
   end
   
   def test_build_merged_feed
-    merged_feed = FeedTools.build_merged_feed([
-      "http://rss.slashdot.org/Slashdot/slashdot"
-    ])
+    if FeedTools::FEED_TOOLS_VERSION::MINOR == 2 && 
+        FeedTools::FEED_TOOLS_VERSION::TINY <= 26
+      merged_feed = FeedTools.build_merged_feed([
+        "http://rss.slashdot.org/Slashdot/slashdot"
+      ])
+    end
   end
   
   def test_extract_xhtml
