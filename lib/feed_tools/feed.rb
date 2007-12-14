@@ -1086,7 +1086,7 @@ module FeedTools
           "TITLE"
         ])
         @title = FeedTools::HtmlHelper.process_text_construct(title_node,
-          self.feed_type, self.feed_version)
+          self.feed_type, self.feed_version, [self.base_uri])
         if self.feed_type == "atom" ||
             self.configurations[:always_strip_wrapper_elements]
           @title = FeedTools::HtmlHelper.strip_wrapper_element(@title)
@@ -1129,7 +1129,7 @@ module FeedTools
           "info"
         ])
         @subtitle = FeedTools::HtmlHelper.process_text_construct(
-          subtitle_node, self.feed_type, self.feed_version)
+          subtitle_node, self.feed_type, self.feed_version, [self.base_uri])
         if self.feed_type == "atom" ||
             self.configurations[:always_strip_wrapper_elements]
           @subtitle = FeedTools::HtmlHelper.strip_wrapper_element(@subtitle)
@@ -2075,7 +2075,7 @@ module FeedTools
           "rights"
         ])
         @rights = FeedTools::HtmlHelper.process_text_construct(rights_node,
-          self.feed_type, self.feed_version)
+          self.feed_type, self.feed_version, [self.base_uri])
         if self.feed_type == "atom" ||
             self.configurations[:always_strip_wrapper_elements]
           @rights = FeedTools::HtmlHelper.strip_wrapper_element(@rights)

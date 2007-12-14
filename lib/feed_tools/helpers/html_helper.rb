@@ -428,17 +428,16 @@ module FeedTools
       
       resolve_node = lambda do |html_node|
         if html_node.kind_of? REXML::Element
-          for element_attribute_pair in relative_uri_attributes
-            if html_node.name.downcase == element_attribute_pair[0]
-              attribute = html_node.attribute(element_attribute_pair[1])
+          for element_name, attribute_name in relative_uri_attributes
+            if html_node.name.downcase == element_name
+              attribute = html_node.attribute(attribute_name)
               if attribute != nil
                 href = attribute.value
                 href = FeedTools::UriHelper.resolve_relative_uri(
                   href, [html_node.base_uri] | base_uri_sources)
                 href = FeedTools::UriHelper.normalize_url(href)
-                html_node.attribute(
-                  element_attribute_pair[1]).instance_variable_set(
-                    "@value", href)
+                html_node.attribute(attribute_name).instance_variable_set(
+                  "@value", href)
               end
             end
           end
@@ -583,11 +582,11 @@ module FeedTools
         if FeedTools.configurations[:sanitization_enabled]
           content = FeedTools::HtmlHelper.sanitize_html(content, :strip)
         end
-        content = FeedTools::HtmlHelper.resolve_relative_uris(content,
-          [content_node.base_uri] | base_uri_sources)
         if repair_entities
           content = FeedTools::HtmlHelper.unescape_entities(content)
         end
+        content = FeedTools::HtmlHelper.resolve_relative_uris(content,
+          [content_node.base_uri] | base_uri_sources)
         content = FeedTools::HtmlHelper.tidy_html(content)
       end
       if FeedTools.configurations[:tab_spaces] != nil
