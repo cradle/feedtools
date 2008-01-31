@@ -225,7 +225,8 @@ class RssTest < Test::Unit::TestCase
 
     # temp
     with_feed(:from_file => 'wellformed/rss/channel_dc_rights.xml') { |feed|
-      assert_equal("Example copyright", feed.license)
+      assert_equal("Example copyright", feed.rights)
+      assert_equal(nil, feed.license)
     }
   end
   
