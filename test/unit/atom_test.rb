@@ -438,6 +438,56 @@ class AtomTest < Test::Unit::TestCase
         feed.copyright)
     }
   end
+
+  def test_feed_license
+    with_feed(:from_data => <<-FEED
+      <feed xmlns="http://www.w3.org/2005/Atom">
+        <id>http://www.example.com/myfeed</id>
+        <title>My Example Feed</title>
+        <updated>2005-07-28T12:00:00Z</updated>
+        <link href="http://www.example.com/myfeed" />
+        <link rel="license" type="application/rdf+xml"
+          href="http://creativecommons.org/licenses/by-nc/2.5/rdf" />
+        <rights>
+          Copyright (c) 2005. Some rights reserved. This feed
+          is licensed under a Creative Commons Attribute-NonCommercial
+          Use License. It contains material originally published by
+          Jane Smith at http://www.example.com/entries/1 under the
+          Creative Commons Attribute License.
+        </rights>
+        <author><name>James</name></author>
+        <entry>
+          <id>tag:entries.org,2005:1</id>
+          <title>Atom Powered Robots Run Amok</title>
+          <updated>2005-06-28T12:00:00Z</updated>
+          <link href="http://www.example.org/entries/1" />
+          <summary>Atom Powered Robots Run Amok</summary>
+          <author><name>Jane Smith</name></author>
+          <link rel="license" type="text/html"
+            href="http://creativecommons.org/licenses/by/2.5/" />
+        </entry>
+      </feed>
+    FEED
+    ) { |feed|
+      assert_equal(1, feed.entries.size)
+      assert_equal(
+        "http://creativecommons.org/licenses/by-nc/2.5/rdf",
+        feed.license.href
+      )
+      assert_equal(
+        "application/rdf+xml",
+        feed.license.type
+      )
+      assert_equal(
+        "http://creativecommons.org/licenses/by/2.5/",
+        feed.entries[0].license.href
+      )
+      assert_equal(
+        "text/html",
+        feed.entries[0].license.type
+      )
+    }
+  end
   
   def test_feed_item_author
     with_feed(:from_data => <<-FEED
