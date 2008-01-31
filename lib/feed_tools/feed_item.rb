@@ -206,7 +206,8 @@ module FeedTools
       return @xml_document
     end
 
-    # Returns the first node within the root_node that matches the xpath query.
+    # Returns the first node within the root_node that matches the xpath
+    # query.
     def find_node(xpath, select_result_value=false)
       if self.feed_data_type != :xml
         raise "The feed data type is not xml."
@@ -298,7 +299,7 @@ module FeedTools
           "headline"
         ])
         @title = FeedTools::HtmlHelper.process_text_construct(title_node,
-          self.feed_type, self.feed_version, [self.feed.base_uri])
+          self.feed_type, self.feed_version, [self.base_uri])
         if self.feed_type == "atom" ||
             self.configurations[:always_strip_wrapper_elements]
           @title = FeedTools::HtmlHelper.strip_wrapper_element(@title)
@@ -354,7 +355,7 @@ module FeedTools
           "info"
         ])
         @content = FeedTools::HtmlHelper.process_text_construct(content_node,
-          self.feed_type, self.feed_version, [self.feed.base_uri])
+          self.feed_type, self.feed_version, [self.base_uri])
         if self.feed_type == "atom" ||
             self.configurations[:always_strip_wrapper_elements]
           @content = FeedTools::HtmlHelper.strip_wrapper_element(@content)
@@ -408,7 +409,7 @@ module FeedTools
           "body/datacontent"
         ])
         @summary = FeedTools::HtmlHelper.process_text_construct(summary_node,
-          self.feed_type, self.feed_version, [self.feed.base_uri])
+          self.feed_type, self.feed_version, [self.base_uri])
         if self.feed_type == "atom" ||
             self.configurations[:always_strip_wrapper_elements]
           @summary = FeedTools::HtmlHelper.strip_wrapper_element(@summary)
@@ -463,7 +464,7 @@ module FeedTools
                 !FeedTools::UriHelper.is_uri?(link_object.href)
               stored_base_uri =
                 FeedTools::GenericHelper.recursion_trap(:feed_link) do
-                  self.feed.base_uri if self.feed != nil
+                  self.base_uri if self.feed != nil
                 end
               link_object.href = FeedTools::UriHelper.resolve_relative_uri(
                 link_object.href,
@@ -605,7 +606,7 @@ module FeedTools
               !FeedTools::UriHelper.is_uri?(@link)
             stored_base_uri =
               FeedTools::GenericHelper.recursion_trap(:feed_link) do
-                self.feed.base_uri if self.feed != nil
+                self.base_uri if self.feed != nil
               end
             root_base_uri = nil
             unless self.root_node.nil?
@@ -628,10 +629,21 @@ module FeedTools
       @link = new_link
     end
     
+    # Returns the parent feed's base_uri if any.
+    def base_uri
+      parent_feed = self.feed
+      if parent_feed != nil
+        return parent_feed.base_uri
+      else
+        return nil
+      end
+    end
+    
     # Returns the url for posting comments
     def comments
       if @comments.nil?
-        @comments = FeedTools::XmlHelper.try_xpaths(self.root_node, ["comments/text()"],
+        @comments = FeedTools::XmlHelper.try_xpaths(
+          self.root_node, ["comments/text()"],
           :select_result_value => true)
         begin
           if !(@comments =~ /^file:/) &&
@@ -664,8 +676,10 @@ module FeedTools
           "itunes:summary/text()"
         ], :select_result_value => true)
         unless @itunes_summary.blank?
-          @itunes_summary = FeedTools::HtmlHelper.unescape_entities(@itunes_summary)
-          @itunes_summary = FeedTools::HtmlHelper.sanitize_html(@itunes_summary)
+          @itunes_summary =
+            FeedTools::HtmlHelper.unescape_entities(@itunes_summary)
+          @itunes_summary =
+            FeedTools::HtmlHelper.sanitize_html(@itunes_summary)
           @itunes_summary.strip!
         else
           @itunes_summary = nil
@@ -686,8 +700,10 @@ module FeedTools
           "itunes:subtitle/text()"
         ], :select_result_value => true)
         unless @itunes_subtitle.blank?
-          @itunes_subtitle = FeedTools::HtmlHelper.unescape_entities(@itunes_subtitle)
-          @itunes_subtitle = FeedTools::HtmlHelper.sanitize_html(@itunes_subtitle)
+          @itunes_subtitle =
+            FeedTools::HtmlHelper.unescape_entities(@itunes_subtitle)
+          @itunes_subtitle =
+            FeedTools::HtmlHelper.sanitize_html(@itunes_subtitle)
           @itunes_subtitle.strip!
         else
           @itunes_subtitle = nil
@@ -733,16 +749,19 @@ module FeedTools
         ])
         for category_node in category_nodes
           category = FeedTools::Category.new
-          category.term = FeedTools::XmlHelper.try_xpaths(category_node, ["@term", "text()"],
+          category.term = FeedTools::XmlHelper.try_xpaths(
+            category_node, ["@term", "text()"],
             :select_result_value => true)
           category.term.strip! unless category.term.nil?
-          category.label = FeedTools::XmlHelper.try_xpaths(category_node, ["@label"],
+          category.label = FeedTools::XmlHelper.try_xpaths(
+            category_node, ["@label"],
             :select_result_value => true)
           category.label.strip! unless category.label.nil?
-          category.scheme = FeedTools::XmlHelper.try_xpaths(category_node, [
-            "@scheme",
-            "@domain"
-          ], :select_result_value => true)
+          category.scheme = FeedTools::XmlHelper.try_xpaths(
+            category_node, [
+              "@scheme",
+              "@domain"
+            ], :select_result_value => true)
           category.scheme.strip! unless category.scheme.nil?
           @categories << category
         end
@@ -778,7 +797,7 @@ module FeedTools
                   !FeedTools::UriHelper.is_uri?(image.href)
                 stored_base_uri =
                   FeedTools::GenericHelper.recursion_trap(:feed_link) do
-                    self.feed.base_uri if self.feed != nil
+                    self.base_uri if self.feed != nil
                   end
                 image.href = FeedTools::UriHelper.resolve_relative_uri(
                   image.href, [image_node.base_uri, stored_base_uri])
@@ -834,7 +853,8 @@ module FeedTools
           "itunes:link[@rel='image']/@href"
         ], :select_result_value => true)
         if self.configurations[:url_normalization_enabled]
-          @itunes_image_link = FeedTools::UriHelper.normalize_url(@itunes_image_link)
+          @itunes_image_link =
+            FeedTools::UriHelper.normalize_url(@itunes_image_link)
         end
       end
       return @itunes_image_link
@@ -848,11 +868,13 @@ module FeedTools
     # Returns the feed item media thumbnail link
     def media_thumbnail_link
       if @media_thumbnail_link.nil?
-        @media_thumbnail_link = FeedTools::XmlHelper.try_xpaths(self.root_node, [
-          "media:thumbnail/@url"
-        ], :select_result_value => true)
+        @media_thumbnail_link = FeedTools::XmlHelper.try_xpaths(
+          self.root_node, [
+            "media:thumbnail/@url"
+          ], :select_result_value => true)
         if self.configurations[:url_normalization_enabled]
-          @media_thumbnail_link = FeedTools::UriHelper.normalize_url(@media_thumbnail_link)
+          @media_thumbnail_link =
+            FeedTools::UriHelper.normalize_url(@media_thumbnail_link)
         end
       end
       return @media_thumbnail_link
@@ -891,12 +913,24 @@ module FeedTools
       @rights = new_rights
     end
 
-    def license #:nodoc:
-      raise "Not implemented yet."
+    # Returns the first license link for the feed item.
+    def license
+      return self.licenses.first
+    end
+
+    # Returns all licenses linked from this feed item.
+    def licenses
+      if @licenses.nil?
+        @licenses = self.links.select do |link|
+          link.rel == "license"
+        end
+      end
+      return @licenses
     end
     
-    def license=(new_license) #:nodoc:
-      raise "Not implemented yet."
+    # Sets the feed item's licenses.
+    def licenses=(new_licenses)
+      @licenses = new_licenses
     end
 
     # Returns all feed item enclosures
@@ -1030,21 +1064,26 @@ module FeedTools
               enclosure_node.attributes["expression"].to_s
             enclosure.is_default =
               (enclosure_node.attributes["isDefault"].to_s.downcase == "true")
-            enclosure_thumbnail_url = FeedTools::XmlHelper.try_xpaths(enclosure_node,
-              ["media:thumbnail/@url"], :select_result_value => true)
+            enclosure_thumbnail_url =
+              FeedTools::XmlHelper.try_xpaths(enclosure_node,
+                ["media:thumbnail/@url"], :select_result_value => true)
             if !enclosure_thumbnail_url.blank?
               enclosure.thumbnail = FeedTools::EnclosureThumbnail.new(
-                FeedTools::HtmlHelper.unescape_entities(enclosure_thumbnail_url),
                 FeedTools::HtmlHelper.unescape_entities(
-                  FeedTools::XmlHelper.try_xpaths(enclosure_node, ["media:thumbnail/@height"],
+                  enclosure_thumbnail_url),
+                FeedTools::HtmlHelper.unescape_entities(
+                  FeedTools::XmlHelper.try_xpaths(enclosure_node,
+                    ["media:thumbnail/@height"],
                     :select_result_value => true)),
                 FeedTools::HtmlHelper.unescape_entities(
-                  FeedTools::XmlHelper.try_xpaths(enclosure_node, ["media:thumbnail/@width"],
+                  FeedTools::XmlHelper.try_xpaths(enclosure_node,
+                    ["media:thumbnail/@width"],
                     :select_result_value => true))
               )
             end
             enclosure.categories = []
-            for category in FeedTools::XmlHelper.try_xpaths_all(enclosure_node, ["media:category"])
+            for category in FeedTools::XmlHelper.try_xpaths_all(
+                enclosure_node, ["media:category"])
               enclosure.categories << FeedTools::Category.new
               enclosure.categories.last.term =
                 FeedTools::HtmlHelper.unescape_entities(category.inner_xml)
@@ -1061,20 +1100,24 @@ module FeedTools
                 enclosure.categories.last.label = nil
               end
             end
-            enclosure_media_hash = FeedTools::XmlHelper.try_xpaths(enclosure_node,
-              ["media:hash/text()"], :select_result_value => true)
+            enclosure_media_hash =
+              FeedTools::XmlHelper.try_xpaths(enclosure_node,
+                ["media:hash/text()"], :select_result_value => true)
             if !enclosure_media_hash.nil?
               enclosure.hash = FeedTools::EnclosureHash.new(
-                FeedTools::HtmlHelper.sanitize_html(FeedTools::HtmlHelper.unescape_entities(
-                  enclosure_media_hash), :strip),
+                FeedTools::HtmlHelper.sanitize_html(
+                  FeedTools::HtmlHelper.unescape_entities(
+                    enclosure_media_hash), :strip),
                 "md5"
               )
             end
-            enclosure_media_player_url = FeedTools::XmlHelper.try_xpaths(enclosure_node,
-              ["media:player/@url"], :select_result_value => true)
+            enclosure_media_player_url =
+              FeedTools::XmlHelper.try_xpaths(enclosure_node,
+                ["media:player/@url"], :select_result_value => true)
             if !enclosure_media_player_url.blank?
               enclosure.player = FeedTools::EnclosurePlayer.new(
-                FeedTools::HtmlHelper.unescape_entities(enclosure_media_player_url),
+                FeedTools::HtmlHelper.unescape_entities(
+                  enclosure_media_player_url),
                 FeedTools::HtmlHelper.unescape_entities(
                   FeedTools::XmlHelper.try_xpaths(enclosure_node,
                     ["media:player/@height"], :select_result_value => true)),
@@ -1084,9 +1127,11 @@ module FeedTools
               )
             end
             enclosure.credits = []
-            for credit in FeedTools::XmlHelper.try_xpaths_all(enclosure_node, ["media:credit"])
+            for credit in FeedTools::XmlHelper.try_xpaths_all(
+                enclosure_node, ["media:credit"])
               enclosure.credits << FeedTools::EnclosureCredit.new(
-                FeedTools::HtmlHelper.unescape_entities(credit.inner_xml.to_s.strip),
+                FeedTools::HtmlHelper.unescape_entities(
+                  credit.inner_xml.to_s.strip),
                 FeedTools::HtmlHelper.unescape_entities(
                   credit.attributes["role"].to_s.downcase)
               )
@@ -1097,10 +1142,12 @@ module FeedTools
                 enclosure.credits.last.role = nil
               end
             end
-            enclosure.explicit = (FeedTools::XmlHelper.try_xpaths(enclosure_node,
-              ["media:adult/text()"]).to_s.downcase == "true")
+            enclosure.explicit =
+              (FeedTools::XmlHelper.try_xpaths(enclosure_node,
+                ["media:adult/text()"]).to_s.downcase == "true")
             enclosure_media_text =
-              FeedTools::XmlHelper.try_xpaths(enclosure_node, ["media:text/text()"])
+              FeedTools::XmlHelper.try_xpaths(enclosure_node,
+                ["media:text/text()"])
             if !enclosure_media_text.blank?
               enclosure.text = FeedTools::HtmlHelper.unescape_entities(
                 enclosure_media_text)
@@ -1121,7 +1168,8 @@ module FeedTools
         # Parse the group objects.
         for media_group in media_group_enclosures
           group_media_content_enclosures =
-            FeedTools::XmlHelper.try_xpaths_all(media_group, ["media:content"])
+            FeedTools::XmlHelper.try_xpaths_all(media_group,
+              ["media:content"])
           
           # Parse the content objects within the group objects.
           affected_enclosures =
@@ -1130,23 +1178,27 @@ module FeedTools
           # Now make sure that content objects inherit certain properties from
           # the group objects.
           for enclosure in affected_enclosures
-            media_group_thumbnail = FeedTools::XmlHelper.try_xpaths(media_group,
-              ["media:thumbnail/@url"], :select_result_value => true)
+            media_group_thumbnail =
+              FeedTools::XmlHelper.try_xpaths(media_group,
+                ["media:thumbnail/@url"], :select_result_value => true)
             if enclosure.thumbnail.nil? && !media_group_thumbnail.blank?
               enclosure.thumbnail = FeedTools::EnclosureThumbnail.new(
                 FeedTools::HtmlHelper.unescape_entities(
                   media_group_thumbnail),
                 FeedTools::HtmlHelper.unescape_entities(
-                  FeedTools::XmlHelper.try_xpaths(media_group, ["media:thumbnail/@height"],
+                  FeedTools::XmlHelper.try_xpaths(media_group,
+                    ["media:thumbnail/@height"],
                     :select_result_value => true)),
                 FeedTools::HtmlHelper.unescape_entities(
-                  FeedTools::XmlHelper.try_xpaths(media_group, ["media:thumbnail/@width"],
+                  FeedTools::XmlHelper.try_xpaths(media_group,
+                    ["media:thumbnail/@width"],
                     :select_result_value => true))
               )
             end
             if (enclosure.categories.blank?)
               enclosure.categories = []
-              for category in FeedTools::XmlHelper.try_xpaths_all(media_group, ["media:category"])
+              for category in FeedTools::XmlHelper.try_xpaths_all(
+                  media_group, ["media:category"])
                 enclosure.categories << FeedTools::Category.new
                 enclosure.categories.last.term =
                   FeedTools::HtmlHelper.unescape_entities(category.inner_xml)
@@ -1164,31 +1216,42 @@ module FeedTools
                 end
               end
             end
-            enclosure_media_group_hash = FeedTools::XmlHelper.try_xpaths(enclosure_node,
-              ["media:hash/text()"], :select_result_value => true)
+            enclosure_media_group_hash =
+              FeedTools::XmlHelper.try_xpaths(enclosure_node,
+                ["media:hash/text()"], :select_result_value => true)
             if enclosure.hash.nil? && !enclosure_media_group_hash.blank?
               enclosure.hash = FeedTools::EnclosureHash.new(
-                FeedTools::HtmlHelper.sanitize_html(FeedTools::HtmlHelper.unescape_entities(
-                  enclosure_media_group_hash), :strip),
+                FeedTools::HtmlHelper.sanitize_html(
+                  FeedTools::HtmlHelper.unescape_entities(
+                    enclosure_media_group_hash), :strip),
                 "md5"
               )
             end
-            enclosure_media_group_url = FeedTools::XmlHelper.try_xpaths(media_group,
-              "media:player/@url", :select_result_value => true)
+            enclosure_media_group_url = FeedTools::XmlHelper.try_xpaths(
+              media_group,
+              "media:player/@url",
+              :select_result_value => true
+            )
             if enclosure.player.nil? && !enclosure_media_group_url.blank?
               enclosure.player = FeedTools::EnclosurePlayer.new(
-                FeedTools::HtmlHelper.unescape_entities(enclosure_media_group_url),
                 FeedTools::HtmlHelper.unescape_entities(
-                  FeedTools::XmlHelper.try_xpaths(media_group, ["media:player/@height"],
+                  enclosure_media_group_url),
+                FeedTools::HtmlHelper.unescape_entities(
+                  FeedTools::XmlHelper.try_xpaths(media_group,
+                    ["media:player/@height"],
                     :select_result_value => true)),
                 FeedTools::HtmlHelper.unescape_entities(
-                  FeedTools::XmlHelper.try_xpaths(media_group, ["media:player/@width"],
-                    :select_result_value => true))
+                  FeedTools::XmlHelper.try_xpaths(media_group,
+                    ["media:player/@width"],
+                    :select_result_value => true
+                  )
+                )
               )
             end
             if enclosure.credits.nil? || enclosure.credits.size == 0
               enclosure.credits = []
-              for credit in FeedTools::XmlHelper.try_xpaths_all(media_group, ["media:credit"])
+              for credit in FeedTools::XmlHelper.try_xpaths_all(
+                  media_group, ["media:credit"])
                 enclosure.credits << FeedTools::EnclosureCredit.new(
                   FeedTools::HtmlHelper.unescape_entities(credit.inner_xml),
                   FeedTools::HtmlHelper.unescape_entities(
@@ -1200,13 +1263,15 @@ module FeedTools
               end
             end
             if enclosure.explicit?.nil?
-              enclosure.explicit = ((FeedTools::XmlHelper.try_xpaths(media_group, [
-                "media:adult/text()"
-              ], :select_result_value => true).downcase == "true") ?
-                true : false)
+              enclosure.explicit =
+                ((FeedTools::XmlHelper.try_xpaths(media_group, [
+                  "media:adult/text()"
+                ], :select_result_value => true).downcase == "true") ?
+                  true : false)
             end
-            enclosure_media_group_text = FeedTools::XmlHelper.try_xpaths(media_group,
-              ["media:text/text()"], :select_result_value => true)
+            enclosure_media_group_text =
+              FeedTools::XmlHelper.try_xpaths(media_group,
+                ["media:text/text()"], :select_result_value => true)
             if enclosure.text.nil? && !enclosure_media_group_text.blank?
               enclosure.text = FeedTools::HtmlHelper.sanitize_html(
                 FeedTools::HtmlHelper.unescape_entities(
@@ -1227,12 +1292,14 @@ module FeedTools
         
         # Add all the itunes categories
         itunes_categories =
-          FeedTools::XmlHelper.try_xpaths_all(self.root_node, ["itunes:category"])
+          FeedTools::XmlHelper.try_xpaths_all(self.root_node,
+            ["itunes:category"])
         for itunes_category in itunes_categories
           genre = "Podcasts"
           category = itunes_category.attributes["text"].to_s
           subcategory =
-            FeedTools::XmlHelper.try_xpaths(itunes_category, ["itunes:category/@text"],
+            FeedTools::XmlHelper.try_xpaths(itunes_category,
+              ["itunes:category/@text"],
               :select_result_value => true)
           category_path = genre
           if !category.blank?
@@ -1866,7 +1933,8 @@ module FeedTools
           if rdf_bag != nil && rdf_bag.size > 0
             for tag_node in rdf_bag
               begin
-                tag_url = FeedTools::XmlHelper.try_xpaths(tag_node, ["@resource"],
+                tag_url = FeedTools::XmlHelper.try_xpaths(tag_node,
+                  ["@resource"],
                   :select_result_value => true)
                 tag_match = tag_url.scan(/\/(tag|tags)\/(\w+)$/)
                 if tag_match.size > 0
@@ -1879,7 +1947,8 @@ module FeedTools
         end
         if @tags.nil? || @tags.size == 0
           @tags = []
-          tag_list = FeedTools::XmlHelper.try_xpaths_all(self.root_node, ["category/text()"],
+          tag_list = FeedTools::XmlHelper.try_xpaths_all(self.root_node,
+            ["category/text()"],
             :select_result_value => true)
           for tag in tag_list
             @tags << tag.to_s.downcase.strip
@@ -1887,7 +1956,8 @@ module FeedTools
         end
         if @tags.nil? || @tags.size == 0
           @tags = []
-          tag_list = FeedTools::XmlHelper.try_xpaths_all(self.root_node, ["dc:subject/text()"],
+          tag_list = FeedTools::XmlHelper.try_xpaths_all(self.root_node,
+            ["dc:subject/text()"],
             :select_result_value => true)
           for tag in tag_list
             @tags << tag.to_s.downcase.strip
@@ -1895,9 +1965,10 @@ module FeedTools
         end
         if @tags.blank?
           begin
-            itunes_keywords_string = FeedTools::XmlHelper.try_xpaths(self.root_node, [
-              "itunes:keywords/text()"
-            ], :select_result_value => true)
+            itunes_keywords_string =
+              FeedTools::XmlHelper.try_xpaths(self.root_node, [
+                "itunes:keywords/text()"
+              ], :select_result_value => true)
             unless itunes_keywords_string.blank?
               @tags = itunes_keywords_string.downcase.split(",")
               if @tags.size == 1
@@ -1952,8 +2023,9 @@ module FeedTools
       @explicit = (new_explicit ? true : false)
     end
     
-    # A hook method that is called during the feed generation process.  Overriding this method
-    # will enable additional content to be inserted into the feed.
+    # A hook method that is called during the feed generation process.
+    # Overriding this method will enable additional content to be inserted
+    # into the feed.
     def build_xml_hook(feed_type, version, xml_builder)
       return nil
     end
@@ -1985,15 +2057,18 @@ module FeedTools
       elsif feed_type == "atom" && (version == nil || version == 0.0)
         version = 1.0
       end
-      if feed_type == "rss" && (version == 0.9 || version == 1.0 || version == 1.1)
+      if feed_type == "rss" &&
+          (version == 0.9 || version == 1.0 || version == 1.1)
         # RDF-based rss format
         if link.nil?
-          raise "Cannot generate an rdf-based feed item with a nil link field."
+          raise "Cannot generate an rdf-based feed item with a " +
+            "nil link field."
         end
         return xml_builder.item("rdf:about" =>
             FeedTools::HtmlHelper.escape_entities(link)) do
           unless self.title.blank?
-            xml_builder.title(FeedTools::HtmlHelper.strip_html_tags(self.title))
+            xml_builder.title(
+              FeedTools::HtmlHelper.strip_html_tags(self.title))
           else
             xml_builder.title
           end
@@ -2035,7 +2110,8 @@ module FeedTools
         # normal rss format
         return xml_builder.item do
           unless self.title.blank?
-            xml_builder.title(FeedTools::HtmlHelper.strip_html_tags(self.title))
+            xml_builder.title(
+              FeedTools::HtmlHelper.strip_html_tags(self.title))
           end
           unless self.link.blank?
             xml_builder.link(self.link)
@@ -2060,11 +2136,12 @@ module FeedTools
           elsif !self.time.nil?
             xml_builder.pubDate(self.time.rfc822)            
           end
-          unless self.copyright.blank?
-            xml_builder.tag!("dc:rights", self.copyright)
+          unless self.rights.blank?
+            xml_builder.tag!("dc:rights", self.rights)
           end
           unless self.guid.blank?
-            if FeedTools::UriHelper.is_uri?(self.guid) && (self.guid =~ /^http/)
+            if FeedTools::UriHelper.is_uri?(self.guid) &&
+                (self.guid =~ /^http/)
               xml_builder.guid(self.guid, "isPermaLink" => "true")
             else
               xml_builder.guid(self.guid, "isPermaLink" => "false")
@@ -2103,7 +2180,8 @@ module FeedTools
                 end
               rescue
               end
-              attribute_hash["url"] = FeedTools::UriHelper.normalize_url(enclosure.url)
+              attribute_hash["url"] =
+                FeedTools::UriHelper.normalize_url(enclosure.url)
               if enclosure.type != nil
                 attribute_hash["type"] = enclosure.type
               end
@@ -2177,7 +2255,8 @@ module FeedTools
           if self.id != nil
             unless FeedTools::UriHelper.is_uri? self.id
               if self.time != nil && self.link != nil
-                xml_builder.id(FeedTools::UriHelper.build_tag_uri(self.link, self.time))
+                xml_builder.id(FeedTools::UriHelper.build_tag_uri(
+                  self.link, self.time))
               elsif self.link != nil
                 xml_builder.id(FeedTools.build_urn_uuid_uri(self.link))
               else
@@ -2188,7 +2267,8 @@ module FeedTools
               xml_builder.id(self.id)
             end
           elsif self.time != nil && self.link != nil
-            xml_builder.id(FeedTools::UriHelper.build_tag_uri(self.link, self.time))
+            xml_builder.id(FeedTools::UriHelper.build_tag_uri(
+              self.link, self.time))
           else
             raise "Cannot build feed, missing feed unique id."
           end
@@ -2202,7 +2282,8 @@ module FeedTools
               attribute_hash = {}
               next if enclosure.url.blank?
               attribute_hash["rel"] = "enclosure"
-              attribute_hash["href"] = FeedTools::UriHelper.normalize_url(enclosure.url)
+              attribute_hash["href"] =
+                FeedTools::UriHelper.normalize_url(enclosure.url)
               if enclosure.type != nil
                 attribute_hash["type"] = enclosure.type
               end

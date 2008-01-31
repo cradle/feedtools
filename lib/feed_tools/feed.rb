@@ -2089,12 +2089,24 @@ module FeedTools
       @rights = new_rights
     end
 
-    def license #:nodoc:
-      raise "Not implemented yet."
+    # Returns the first license link for the feed item.
+    def license
+      return self.licenses.first
+    end
+
+    # Returns all licenses linked from this feed item.
+    def licenses
+      if @licenses.nil?
+        @licenses = self.links.select do |link|
+          link.rel == "license"
+        end
+      end
+      return @licenses
     end
     
-    def license=(new_license) #:nodoc:
-      raise "Not implemented yet."
+    # Sets the feed item's licenses.
+    def licenses=(new_licenses)
+      @licenses = new_licenses
     end
     
     # Returns the number of seconds before the feed should expire
