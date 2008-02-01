@@ -39,11 +39,13 @@ class RssTest < Test::Unit::TestCase
     with_feed(:from_file => 'wellformed/rss/channel_title_apos.xml') { |feed|
       assert_equal("Mark's title", feed.title)
     }
+    # The assumption is always that we are going to be displaying
+    # this as HTML output.  Therefore the return value is escaped.
     with_feed(:from_file => 'wellformed/rss/channel_title_gt.xml') { |feed|
-      assert_equal("2 > 1", feed.title)
+      assert_equal("2 &gt; 1", feed.title)
     }
     with_feed(:from_file => 'wellformed/rss/channel_title_lt.xml') { |feed|
-      assert_equal("1 < 2", feed.title)
+      assert_equal("1 &lt; 2", feed.title)
     }
     with_feed(:from_file => 'wellformed/rss/channel_dc_title.xml') { |feed|
       assert_equal("Example title", feed.title)
@@ -311,7 +313,9 @@ class RssTest < Test::Unit::TestCase
       assert_equal(nil, feed.entries.first.title)
     }
     with_feed(:from_file => 'wellformed/rss/item_description_not_a_doctype.xml') { |feed|
-      assert_equal('&lt;!\' <a href="foo">', feed.entries.first.description)
+      assert(feed.entries.first.description != nil)
+      assert_equal(1, feed.entries.first.description.scan(
+        '&lt;!\' <a href=').size)
       assert_equal(nil, feed.entries.first.title)
     }
     with_feed(:from_file => 'wellformed/rss/item_content_encoded.xml') { |feed|

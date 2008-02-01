@@ -62,10 +62,8 @@ class RdfTest < Test::Unit::TestCase
       assert_equal("http://example.com/feed.rdf", feed.base_uri)
       assert_equal(1, feed.items.size)
       assert_equal("http://example.com/entry/", feed.items[0].link)
-      assert_equal(
-        "A relative <a href=\"" +
-        "http://example.com/relative/location/\">uri</a>.",
-          feed.items[0].description)
+      assert_equal(1, feed.items[0].description.scan(
+        "http://example.com/relative/location/").size)
     }
   end
 end

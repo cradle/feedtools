@@ -95,6 +95,7 @@ FEED_TOOLS_NAMESPACES = {
 
 $:.unshift(File.dirname(__FILE__))
 $: << (File.dirname(__FILE__) + "/feed_tools/vendor")
+$: << (File.dirname(__FILE__) + "/feed_tools/vendor/html5/lib")
 
 begin
   require 'feed_tools/version'
@@ -129,7 +130,14 @@ begin
   rescue Object
   end  
 
-  require 'feed_tools/vendor/htree'
+  require 'html5'
+  require 'html5/html5parser'
+  require 'html5/liberalxmlparser'
+  require 'html5/treewalkers'
+  require 'html5/treebuilders'
+  require 'html5/serializer'
+  require 'html5/sanitizer'
+  
   require 'feed_tools/vendor/uri'
 
   require 'net/http'

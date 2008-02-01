@@ -152,6 +152,14 @@ module FeedTools
       return relative_uri if base_uri_sources.blank?
       return nil if relative_uri.nil?
       begin
+        # Massive HACK to get around file protocol URIs being used to
+        # resolve relative URIs on feeds in the local file system.
+        # Better to leave these URIs unresolved and hope some other
+        # tool resolves them correctly.
+        base_uri_sources.reject! do |base_uri|
+          base_uri == nil ||
+            FeedTools::URI.parse(base_uri).scheme == "file"
+        end
         base_uri = FeedTools::URI.parse(
           FeedTools::XmlHelper.select_not_blank(base_uri_sources))
         resolved_uri = base_uri

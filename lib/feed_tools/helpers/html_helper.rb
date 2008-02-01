@@ -28,6 +28,7 @@ require 'rexml/document'
 module FeedTools
   # Methods for pulling remote data
   module HtmlHelper
+    
     TIDY_OPTIONS = [
       :add_xml_decl, :add_xml_space, :alt_text, :assume_xml_procins, :bare,
       :clean, :css_prefix, :decorate_inferred_ul, :doctype,
@@ -279,77 +280,6 @@ module FeedTools
       return buffer
     end
 
-    # Removes all dangerous html tags from the html formatted text.
-    # If mode is set to :escape, dangerous and unknown elements will
-    # be escaped.  If mode is set to :strip, dangerous and unknown
-    # elements and all children will be removed entirely.
-    # Dangerous or unknown attributes are always removed.
-    def self.sanitize_html(html, mode=:strip)
-      return nil if html.nil?
-
-      # Lists borrowed from Mark Pilgrim's feedparser
-      acceptable_elements = ['a', 'abbr', 'acronym', 'address', 'area', 'b',
-        'big', 'blockquote', 'br', 'button', 'caption', 'center', 'cite',
-        'code', 'col', 'colgroup', 'dd', 'del', 'dfn', 'dir', 'div', 'dl',
-        'dt', 'em', 'fieldset', 'font', 'form', 'h1', 'h2', 'h3', 'h4',
-        'h5', 'h6', 'hr', 'i', 'img', 'input', 'ins', 'kbd', 'label', 'legend',
-        'li', 'map', 'menu', 'ol', 'optgroup', 'option', 'p', 'pre', 'q', 's',
-        'samp', 'select', 'small', 'span', 'strike', 'strong', 'sub', 'sup',
-        'table', 'tbody', 'td', 'textarea', 'tfoot', 'th', 'thead', 'tr', 'tt',
-        'u', 'ul', 'var']
-
-      acceptable_attributes = ['abbr', 'accept', 'accept-charset', 'accesskey',
-        'action', 'align', 'alt', 'axis', 'border', 'cellpadding',
-        'cellspacing', 'char', 'charoff', 'charset', 'checked', 'cite', 'class',
-        'clear', 'cols', 'colspan', 'color', 'compact', 'coords', 'datetime',
-        'dir', 'disabled', 'enctype', 'for', 'frame', 'headers', 'height',
-        'href', 'hreflang', 'hspace', 'id', 'ismap', 'label', 'lang',
-        'longdesc', 'maxlength', 'media', 'method', 'multiple', 'name',
-        'nohref', 'noshade', 'nowrap', 'prompt', 'readonly', 'rel', 'rev',
-        'rows', 'rowspan', 'rules', 'scope', 'selected', 'shape', 'size',
-        'span', 'src', 'start', 'summary', 'tabindex', 'target', 'title',
-        'type', 'usemap', 'valign', 'value', 'vspace', 'width']
-
-      # Replace with appropriate named entities
-      html.gsub!(/&#x26;/, "&amp;")
-      html.gsub!(/&#38;/, "&amp;")
-      html.gsub!(/&lt;!'/, "&amp;lt;!'")
-
-      # Hackity hack.  But it works, and it seems plenty fast enough.
-      html_doc = HTree.parse_xml("<root>" + html + "</root>").to_rexml
-
-      sanitize_node = lambda do |html_node|
-        if html_node.respond_to? :children
-          for child in html_node.children
-            if child.kind_of? REXML::Element
-              unless acceptable_elements.include? child.name.downcase
-                if mode == :strip
-                  html_node.delete_element(child)
-                else
-                  new_child = REXML::Text.new(CGI.escapeHTML(child.to_s))
-                  html_node.insert_after(child, new_child)
-                  html_node.delete_element(child)
-                end
-              end
-              child.attributes.each_attribute do |attribute|
-                if !(attribute.value =~ /^xmlns(:.+)?$/)
-                  unless acceptable_attributes.include?(
-                      attribute.value.downcase)
-                    child.delete_attribute(attribute.value)
-                  end
-                end
-              end
-            end
-            sanitize_node.call(child)
-          end
-        end
-        html_node
-      end
-      sanitize_node.call(html_doc.root)
-      html = html_doc.root.inner_xml
-      return html
-    end
-
     # Returns true if the type string provided indicates that something is
     # xml or xhtml content.
     def self.xml_type?(type)
@@ -424,8 +354,16 @@ module FeedTools
         ["q", "cite"],
         ["script", "src"]
       ]
-      html_doc = HTree.parse_xml("<root>" + html + "</root>").to_rexml
       
+      # HACK: Prevent the parser from freaking out if it sees this:
+      html.gsub!(/<!'/, "&lt;!'")
+      
+      if FeedTools.configurations[:sanitization_enabled]
+        fragments = HTML5::HTMLParser.parse_fragment(
+          html, :tokenizer => HTML5::HTMLSanitizer)
+      else
+        fragments = HTML5::HTMLParser.parse_fragment(html)
+      end
       resolve_node = lambda do |html_node|
         if html_node.kind_of? REXML::Element
           for element_name, attribute_name in relative_uri_attributes
@@ -438,6 +376,13 @@ module FeedTools
                 href = FeedTools::UriHelper.normalize_url(href)
                 html_node.attribute(attribute_name).instance_variable_set(
                   "@value", href)
+                html_node.attribute(attribute_name).instance_variable_set(
+                  "@unnormalized", href)
+                html_node.attribute(attribute_name).instance_variable_set(
+                  "@normalized", href)
+                if html_node.attribute(attribute_name).value != href
+                  warn("Failed to update href to resolved value.")
+                end
               end
             end
           end
@@ -449,8 +394,12 @@ module FeedTools
         end
         html_node
       end
-      resolve_node.call(html_doc.root)
-      html = html_doc.root.inner_xml
+      fragments.each do |fragment|
+        resolve_node.call(fragment)
+      end
+      html = (fragments.map do |stuff|
+        stuff.to_s
+      end).join("")
       return html
     end
     
@@ -571,20 +520,14 @@ module FeedTools
         content = FeedTools::HtmlHelper.unescape_entities(
           content_node.inner_xml.strip)
       else
-        content = content_node.inner_xml.strip
-        repair_entities = true
+        content = FeedTools::HtmlHelper.unescape_entities(
+          content_node.inner_xml.strip)
       end
       if type == "text" || mode == "text" ||
           type == "text/plain" || mode == "text/plain"
         content = FeedTools::HtmlHelper.escape_entities(content)
       end        
       unless content.nil?
-        if FeedTools.configurations[:sanitization_enabled]
-          content = FeedTools::HtmlHelper.sanitize_html(content, :strip)
-        end
-        if repair_entities
-          content = FeedTools::HtmlHelper.unescape_entities(content)
-        end
         content = FeedTools::HtmlHelper.resolve_relative_uris(content,
           [content_node.base_uri] | base_uri_sources)
         content = FeedTools::HtmlHelper.tidy_html(content)

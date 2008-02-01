@@ -102,19 +102,6 @@ class HelperTest < Test::Unit::TestCase
     end
   end
   
-  def test_sanitize_html
-    assert_equal("<!--foo-->",
-      FeedTools::HtmlHelper.sanitize_html("<!--foo-->"))
-    assert_equal("<P>Upper-case tags</P>",
-      FeedTools::HtmlHelper.sanitize_html("<P>Upper-case tags</P>"))
-    assert_equal("<A HREF='/dev/null'>Upper-case attributes</A>",
-      FeedTools::HtmlHelper.sanitize_html(
-        "<A HREF='/dev/null'>Upper-case attributes</A>"))
-    assert_equal("",
-      FeedTools::HtmlHelper.sanitize_html(
-        "<script>alert('Item Description')</script>"))
-  end
-  
   def test_tidy_html
     FeedTools.configurations[:tidy_enabled] = true
     unless FeedTools::HtmlHelper.tidy_enabled?
