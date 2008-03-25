@@ -224,6 +224,7 @@ module FeedTools
                 "Autodiscovery loop detected: #{autodiscovered_url}"
             end
             self.feed_data = nil
+            
             self.href = autodiscovered_url
             if FeedTools.feed_cache.nil?
               self.cache_object = nil
@@ -714,8 +715,13 @@ module FeedTools
           begin
             @xml_document = REXML::Document.new(self.feed_data_utf_8)
           rescue Exception
-            # Something failed, attempt to repair the xml with htree.
-            @xml_document = HTree.parse(self.feed_data_utf_8).to_rexml
+            # Something failed, attempt to repair the xml with html5lib.
+            begin
+              @xml_document = HTML5::XMLParser.parse(self.feed_data_utf_8)
+            rescue Exception
+              # Failed again, give up.
+              return nil
+            end
           end
         end
       end

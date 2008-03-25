@@ -561,47 +561,66 @@ module FeedTools
     
     # Given a block of html, locates feed links with a given mime type.
     def self.extract_link_by_mime_type(html, mime_type)
-      require 'feed_tools/vendor/htree'
       require 'feed_tools/helpers/xml_helper'
       
+      # HACK: Prevent the parser from freaking out if it sees this:
+      html = html.gsub(/<!'/, "&lt;!'")
+
       # This is technically very, very wrong.  But it saves oodles of
       # clock cycles, and probably works 99.999% of the time.
-      html_document = HTree.parse_xml(
-        FeedTools::HtmlHelper.tidy_html(
-          html.gsub(/<body.*?>(.|\n)*<\/body>/, "<body>-</body>"))).to_rexml
-      html_node = nil
-      head_node = nil
+      html.gsub!(/<body.*?>(.|\n)*?<\/body>/, "<body></body>")
+      html.gsub!(/<script.*?>(.|\n)*?<\/script>/, "")
+      html.gsub!(/<noscript.*?>(.|\n)*?<\/noscript>/, "")
+      html.gsub!(/<!--(.|\n)*?-->/, "")
+      
+      html = FeedTools::HtmlHelper.tidy_html(html)
+      
+      document = HTML5::HTMLParser.parse(html)
+
       link_nodes = []
-      for node in html_document.children
-        next unless node.kind_of?(REXML::Element)
-        if node.name.downcase == "html" &&
-            node.children.size > 0
-          html_node = node
-          break
+      get_link_nodes = lambda do |root_node|
+        html_node = nil
+        head_node = nil
+        return nil if !root_node.respond_to?(:children)
+        if root_node.name.downcase == "html" &&
+            root_node.children.size > 0
+          html_node = root_node
+        else
+          for node in fragment_node.children
+            next unless node.kind_of?(REXML::Element)
+            if node.name.downcase == "html" &&
+                node.children.size > 0
+              html_node = node
+              break
+            end
+          end
         end
-      end
-      return nil if html_node.nil?
-      for node in html_node.children
-        next unless node.kind_of?(REXML::Element)
-        if node.name.downcase == "head"
-          head_node = node
-          break
-        end
-        if node.name.downcase == "link"
-          link_nodes << node
-        end
-      end
-      return nil if html_node.nil? && link_nodes.empty?
-      if !head_node.nil?
-        link_nodes = []
-        for node in head_node.children
-          next unless node.kind_of?(REXML::Element)
-          if node.name.downcase == "link"
-            link_nodes << node
+        if html_node != nil
+          for node in html_node.children
+            next unless node.kind_of?(REXML::Element)
+            if node.name.downcase == "head"
+              head_node = node
+              break
+            end
+            if node.name.downcase == "link"
+              link_nodes << node
+            end
+          end
+          if html_node != nil || !link_nodes.empty?
+            if head_node != nil
+              link_nodes = []
+              for node in head_node.children
+                next unless node.kind_of?(REXML::Element)
+                if node.name.downcase == "link"
+                  link_nodes << node
+                end
+              end
+            end
           end
         end
       end
-      find_link_nodes = lambda do |links|
+      get_link_nodes.call(document.root)
+      process_link_nodes = lambda do |links|
         for link in links
           next unless link.kind_of?(REXML::Element)
           if link.attributes['type'].to_s.strip.downcase ==
@@ -613,10 +632,10 @@ module FeedTools
         end
         for link in links
           next unless link.kind_of?(REXML::Element)
-          find_link_nodes.call(link.children)
+          process_link_nodes.call(link.children)
         end
       end
-      find_link_nodes.call(link_nodes)
+      process_link_nodes.call(link_nodes)
       return nil
     end
   end

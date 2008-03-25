@@ -14,8 +14,9 @@ PKG_FILE_NAME = "#{PKG_NAME}-#{PKG_VERSION}"
 
 RELEASE_NAME  = "REL #{PKG_VERSION}"
 
-RUBY_FORGE_PROJECT = "feedtools"
+RUBY_FORGE_PROJECT = PKG_NAME
 RUBY_FORGE_USER    = "sporkmonger"
+RUBY_FORGE_PATH    = "/var/www/gforge-projects/#{RUBY_FORGE_PROJECT}"
 
 PKG_FILES = FileList[
     "lib/**/*", "test/**/*", "examples/**/*", "doc/**/*", "db/**/*",
@@ -123,7 +124,6 @@ spec = Gem::Specification.new do |s|
   s.add_dependency('builder', '>= 1.2.4')
 
   s.require_path = 'lib'
-  s.autorequire = 'feed_tools'
   
   begin
   s.post_install_message = <<-TEXT
@@ -191,7 +191,17 @@ end
 
 # Publishing ------------------------------------------------------
 
-desc "Publish the API documentation"
-task :pdoc => [:rdoc] do 
-  Rake::SshDirPublisher.new("vacindak@sporkmonger.com", "public_html/projects/feedtools/api", "doc").upload
+namespace :publish do
+  desc "Publish the API documentation"
+  task :api => [ "rdoc" ] do 
+    Rake::SshDirPublisher.new(
+      "#{RUBY_FORGE_USER}@rubyforge.org",
+      "#{RUBY_FORGE_PATH}/",
+      "doc"
+    ).upload
+  end
+
+  desc "Runs all of the publishing tasks"
+  task :all => ["publish:api"] do
+  end
 end

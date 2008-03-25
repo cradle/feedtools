@@ -1,10 +1,11 @@
+=== FeedTools 0.2.28
+  * fixed major bug with autodiscovery
 === FeedTools 0.2.27
-  * now uses the URI class from GentleCMS
+  * now uses a new URI class
   * full support for IRIs
+  * uses html5lib instead of HTree
   * schema changed to allow additional functionality
-  * added support for Google reader API elements
-  * added support for Google data format
-  * added better support for copyright information
+  * added better support for license information
   * added method to allow feeds and feed items to override lazy parsing
   * added configuration setting to override lazy parsing
   * added serialization feature to allow preparsing with FeedUpdater
