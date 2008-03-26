@@ -96,4 +96,10 @@ class EncodingTest < Test::Unit::TestCase
       assert_equal("big5", feed.encoding)
     }
   end
+  
+  def test_utf_content
+    with_feed(:from_file => '/wellformed/encoding/utf8.xml') {|feed|
+      assert_equal("novit\303\240", feed.description)
+    }
+  end
 end

@@ -360,7 +360,7 @@ module FeedTools
       
       if FeedTools.configurations[:sanitization_enabled]
         fragments = HTML5::HTMLParser.parse_fragment(
-          html, :tokenizer => HTML5::HTMLSanitizer)
+          html, :tokenizer => HTML5::HTMLSanitizer, :encoding => 'UTF-8')
       else
         fragments = HTML5::HTMLParser.parse_fragment(html)
       end

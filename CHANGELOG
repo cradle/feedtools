@@ -1,3 +1,5 @@
+=== Feedtools 0.2.29
+  * fixed bug with utf-8 content in resolve_relative_uris
 === FeedTools 0.2.28
   * fixed major bug with autodiscovery
 === FeedTools 0.2.27
