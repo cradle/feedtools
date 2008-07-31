@@ -573,12 +573,15 @@ module FeedTools
           encoding_from_xml_instruct.downcase!
         end
         if encoding_from_xml_instruct.blank?
-          doc = REXML::Document.new(raw_data)
-          encoding_from_xml_instruct = doc.encoding.downcase
-          if encoding_from_xml_instruct == "utf-8"
-            # REXML has a tendency to report utf-8 overzealously, take with
-            # grain of salt
-            encoding_from_xml_instruct = nil
+          begin
+            doc = REXML::Document.new(raw_data)
+            encoding_from_xml_instruct = doc.encoding.downcase
+            if encoding_from_xml_instruct == "utf-8"
+              # REXML has a tendency to report utf-8 overzealously, take with
+              # grain of salt
+              encoding_from_xml_instruct = nil
+            end
+          rescue
           end
         else
           @encoding_from_feed_data = encoding_from_xml_instruct
